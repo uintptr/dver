@@ -1,0 +1,11 @@
+[package]
+name = "dverify"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+hex = "0.4.3"
+log = "0.4.25"
+sha2 = "0.10.8"
+structopt = "0.3.26"
+thiserror = "2.0.11"
