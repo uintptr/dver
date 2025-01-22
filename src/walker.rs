@@ -1,28 +1,28 @@
-#![allow(unused)]
-
 use std::{
-    fmt::{self, Display},
+    env,
+    fmt::{self},
     fs,
-    net::SocketAddr,
-    os::unix::fs::MetadataExt,
     path::{Path, PathBuf},
 };
 
-use log::{error, info, logger};
+use serde::Serializer;
+use serde_derive::Serialize;
 use sha2::{Digest, Sha384};
 
 use crate::{file_io::sha384_file, DVError};
 
-enum WalkerHashType {
-    Unknown = 0,
-    Sha384 = 1,
+fn to_hex_string<S>(bytes: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&hex::encode(bytes))
 }
 
-pub struct WalkerFile {
+#[derive(Debug, Serialize)]
+struct WalkerFile {
     path: PathBuf,
+    #[serde(serialize_with = "to_hex_string")]
     hash: Vec<u8>,
-    hash_type: WalkerHashType,
-    size: u64,
 }
 
 impl fmt::Display for WalkerFile {
@@ -32,11 +32,24 @@ impl fmt::Display for WalkerFile {
     }
 }
 
+impl WalkerFile {
+    fn new<P: AsRef<Path>, T: AsRef<Path>>(root: P, file: T) -> Result<WalkerFile, DVError> {
+        let rel_name = file.as_ref().strip_prefix(&root)?;
+
+        Ok(WalkerFile {
+            path: rel_name.into(),
+            hash: sha384_file(&file)?,
+        })
+    }
+}
+
+#[derive(Debug, Serialize)]
 pub struct WalkerDirectory {
     directory: PathBuf,
+    #[serde(serialize_with = "to_hex_string")]
+    hash: Vec<u8>,
     files: Vec<WalkerFile>,
     directories: Vec<WalkerDirectory>,
-    hash: Vec<u8>,
 }
 
 impl fmt::Display for WalkerDirectory {
@@ -57,33 +70,36 @@ impl fmt::Display for WalkerDirectory {
     }
 }
 
-impl WalkerFile {
-    pub fn new<P: AsRef<Path>>(file: P) -> Result<WalkerFile, DVError> {
-        let hash_type = WalkerHashType::Sha384;
-
-        let stat = fs::metadata(&file)?;
-
-        Ok(WalkerFile {
-            path: file.as_ref().into(),
-            hash: sha384_file(&file)?,
-            hash_type: WalkerHashType::Sha384,
-            size: stat.size(),
-        })
-    }
-}
-
 impl WalkerDirectory {
     pub fn new<P: AsRef<Path>>(dir: P) -> Result<WalkerDirectory, DVError> {
+        let dir: PathBuf = match dir.as_ref().is_absolute() {
+            true => dir.as_ref().into(),
+            false => {
+                let cwd = env::current_dir()?;
+                Path::new(&cwd).join(dir)
+            }
+        };
+
+        match dir.parent() {
+            Some(root) => WalkerDirectory::new_with_root(root, &dir),
+            None => Err(DVError::InvalidRootDirectory),
+        }
+    }
+
+    fn new_with_root<P: AsRef<Path>, T: AsRef<Path>>(
+        root: P,
+        dir: T,
+    ) -> Result<WalkerDirectory, DVError> {
+        let rel_name = dir.as_ref().strip_prefix(&root)?;
+
         let mut d = WalkerDirectory {
-            directory: dir.as_ref().into(),
+            directory: rel_name.into(),
             files: Vec::new(),
             directories: Vec::new(),
             hash: vec![],
         };
 
-        d.parse(dir)?;
-
-        info!("--> {d}");
+        d.parse(root, dir)?;
 
         let mut hash = Sha384::new();
 
@@ -104,16 +120,16 @@ impl WalkerDirectory {
         Ok(d)
     }
 
-    pub fn hash(&self) -> &[u8] {
-        return &self.hash;
+    pub fn hash_str(&self) -> String {
+        hex::encode(&self.hash)
     }
 
-    fn parse<P: AsRef<Path>>(&mut self, dir: P) -> Result<(), DVError> {
+    fn parse<P: AsRef<Path>, T: AsRef<Path>>(&mut self, root: P, dir: T) -> Result<(), DVError> {
         if dir.as_ref().is_dir() {
             for entry in fs::read_dir(&dir)? {
                 let entry = entry?.path();
                 if entry.is_dir() {
-                    let d = WalkerDirectory::new(entry)?;
+                    let d = WalkerDirectory::new_with_root(root.as_ref(), entry)?;
                     self.directories.push(d);
                 } else if entry.is_file() {
                     // we'll do it later
@@ -125,7 +141,7 @@ impl WalkerDirectory {
             for entry in fs::read_dir(dir)? {
                 let entry = entry?.path();
                 if entry.is_file() {
-                    let f = WalkerFile::new(entry)?;
+                    let f = WalkerFile::new(root.as_ref(), entry)?;
                     self.files.push(f);
                 }
             }
@@ -137,7 +153,6 @@ impl WalkerDirectory {
 
 #[cfg(test)]
 mod tests {
-    use std::env;
 
     use crate::logging::init_logging;
 
@@ -147,11 +162,13 @@ mod tests {
     fn walk_tmp() {
         init_logging().unwrap();
 
-        let res = WalkerDirectory::new("/usr");
+        let res = WalkerDirectory::new("/home/joe/tmp/rtl-sdr");
         assert!(res.is_ok());
 
         if let Ok(d) = res {
-            info!("{d}");
+            let json_data = serde_json::to_string_pretty(&d).unwrap();
+
+            fs::write("/tmp/bleh", json_data).unwrap();
         }
     }
 }

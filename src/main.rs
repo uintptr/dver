@@ -1,10 +1,8 @@
-#![allow(unused)]
 use dverify::{signer::sign_directory, verifier::verify_directory, DVError};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 #[structopt(about = "Deployment Verification Tool")]
-
 enum DVCommand {
     /// Sign a deployment directory
     Sign {
@@ -12,8 +10,8 @@ enum DVCommand {
         directory: String,
         #[structopt(long, short = "k")]
         private_key: String,
-        #[structopt(long, short = "i")]
-        ignore: Option<Vec<String>>,
+        //#[structopt(long, short = "i")]
+        //ignore: Option<Vec<String>>,
     },
     /// Verify a deployment directory
     Verify {
