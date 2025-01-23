@@ -6,6 +6,8 @@ use thiserror::Error;
 pub enum Error {
     #[error("Invalid Argument ({})", .0)]
     InvalidArgument(String),
+    #[error("Input Key Format Not Supported")]
+    InputKeyFormatNotSupported,
     #[error("Not Implemented")]
     NotImplementedError,
     #[error("Invalid Root Directory")]
@@ -26,6 +28,8 @@ pub enum Error {
     Rel(#[from] StripPrefixError),
     #[error(transparent)]
     Serde(#[from] serde_json::Error),
+    #[error(transparent)]
+    LoadKey(#[from] ssh_key::Error),
 }
 
 pub mod common;
