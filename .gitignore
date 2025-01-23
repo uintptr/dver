@@ -4,3 +4,5 @@
 /target
 /ok
 /test
+/*.sig
+/TODO.md

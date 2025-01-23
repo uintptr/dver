@@ -3,13 +3,15 @@ use std::{path::StripPrefixError, time::SystemTimeError};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub enum DVError {
+pub enum Error {
     #[error("Invalid Argument ({})", .0)]
     InvalidArgument(String),
     #[error("Not Implemented")]
     NotImplementedError,
     #[error("Invalid Root Directory")]
     InvalidRootDirectory,
+    #[error("Unknown Hash Type")]
+    UnknownHashType,
     #[error("Logging Init Failure")]
     LoggingInitFailure,
     #[error("Unexpected input {:?}", .0)]
@@ -28,6 +30,7 @@ pub enum DVError {
 
 pub mod common;
 pub mod file_io;
+pub mod key;
 pub mod logging;
 pub mod signer;
 pub mod verifier;

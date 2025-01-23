@@ -6,11 +6,11 @@ use std::{
 
 use log::{info, LevelFilter, Metadata, Record};
 
-use crate::DVError;
+use crate::Error;
 
 //const CUR_CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 
-fn now_f64() -> Result<f64, DVError> {
+fn now_f64() -> Result<f64, Error> {
     let since = SystemTime::now().duration_since(UNIX_EPOCH)?;
     Ok(since.as_secs_f64())
 }
@@ -52,18 +52,14 @@ impl log::Log for SimpleLogger {
     fn flush(&self) {}
 }
 
-fn get_log_level_from_env() -> Result<LevelFilter, DVError> {
+fn get_log_level_from_env() -> Result<LevelFilter, Error> {
     let level = match env::var("LC_LOG_LEVEL") {
         Ok(v) => match v.as_str() {
             "info" => LevelFilter::Info,
             "warn" => LevelFilter::Warn,
             "debug" => LevelFilter::Debug,
             "error" => LevelFilter::Error,
-            _ => {
-                return Err(DVError::InvalidArgument(
-                    "invalid LC_LOG_LEVEL value".into(),
-                ))
-            }
+            _ => return Err(Error::InvalidArgument("invalid LC_LOG_LEVEL value".into())),
         },
         Err(_) => LevelFilter::Debug,
     };
@@ -73,9 +69,9 @@ fn get_log_level_from_env() -> Result<LevelFilter, DVError> {
 
 static LOGGER: SimpleLogger = SimpleLogger;
 
-pub fn init_logging() -> Result<(), DVError> {
+pub fn init_logging() -> Result<(), Error> {
     if log::set_logger(&LOGGER).is_err() {
-        return Err(DVError::LoggingInitFailure);
+        return Err(Error::LoggingInitFailure);
     }
 
     let debug_build = cfg!(debug_assertions);
