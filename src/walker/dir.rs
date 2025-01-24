@@ -12,7 +12,8 @@ use base64::{prelude::BASE64_STANDARD, Engine};
 use serde_derive::Serialize;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
-use crate::{file_io::DVHashType, Error};
+use crate::error::Error;
+use crate::file_io::DVHashType;
 
 use super::file::WalkerFile;
 

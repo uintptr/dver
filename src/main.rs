@@ -1,5 +1,7 @@
-use dverify::{signer::sign_directory, verifier::verify_directory, Error};
+use dverify::{sign::signer::sign_directory, verifier::verify_directory};
 use structopt::StructOpt;
+
+use dverify::error::Result;
 
 #[derive(Debug, StructOpt)]
 #[structopt(about = "Deployment Verification Tool")]
@@ -25,7 +27,7 @@ enum DVCommand {
     },
 }
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<()> {
     let opt = DVCommand::from_args();
 
     match opt {

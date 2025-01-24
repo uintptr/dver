@@ -6,8 +6,9 @@ use serde_derive::Serialize;
 use crate::{
     common::vec_hex_serializer,
     file_io::{hash_file, DVHashType},
-    Error,
 };
+
+use crate::error::Error;
 
 #[derive(Debug, Serialize)]
 pub struct WalkerFile {

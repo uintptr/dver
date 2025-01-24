@@ -2,18 +2,19 @@ use std::{fs, path::Path};
 
 use ssh_key::PrivateKey;
 
-use crate::Error;
+use crate::error::{Error, Result};
 
 #[derive(Debug)]
 pub enum DVKeyType {
     Unknown = 0,
-    OpenSSH = 1,
+    OpenSSHEd25519 = 1,
+    OpenSSHRsa = 2,
 }
 
 #[derive(Debug)]
 pub struct DVPrivateKey {
-    key_type: DVKeyType,
-    key_data: Vec<u8>,
+    pub key_type: DVKeyType,
+    pub key_data: Vec<u8>,
 }
 
 fn get_key_type<P: AsRef<Path>>(path: P) -> DVKeyType {
@@ -26,30 +27,31 @@ fn get_key_type<P: AsRef<Path>>(path: P) -> DVKeyType {
     };
 
     if file_name.ends_with("id_ed25519") {
-        return DVKeyType::OpenSSH;
+        return DVKeyType::OpenSSHEd25519;
     } else if file_name.ends_with("id_rsa") {
-        return DVKeyType::OpenSSH;
+        return DVKeyType::OpenSSHRsa;
     }
 
     DVKeyType::Unknown
 }
 
-fn load_key_openssh<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, Error> {
+fn load_key_openssh<P: AsRef<Path>>(path: P) -> Result<Vec<u8>> {
     let encoded_key = fs::read_to_string(path)?;
 
     let key_data = PrivateKey::from_openssh(encoded_key)?;
 
     match key_data.key_data().ed25519() {
         Some(v) => Ok(v.private.as_ref().to_vec()),
-        _ => return Err(Error::InputKeyFormatNotSupported),
+        _ => Err(Error::InputKeyFormatNotSupported),
     }
 }
 
-fn load_key<P: AsRef<Path>>(path: P) -> Result<DVPrivateKey, Error> {
+fn load_key<P: AsRef<Path>>(path: P) -> Result<DVPrivateKey> {
     let key_type = get_key_type(&path);
 
     let key_data = match key_type {
-        DVKeyType::OpenSSH => load_key_openssh(&path)?,
+        DVKeyType::OpenSSHEd25519 => load_key_openssh(&path)?,
+        DVKeyType::OpenSSHRsa => load_key_openssh(&path)?,
         DVKeyType::Unknown => return Err(Error::InputKeyFormatNotSupported),
     };
 
@@ -57,7 +59,7 @@ fn load_key<P: AsRef<Path>>(path: P) -> Result<DVPrivateKey, Error> {
 }
 
 impl DVPrivateKey {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<DVPrivateKey, Error> {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<DVPrivateKey> {
         load_key(path)
     }
 }

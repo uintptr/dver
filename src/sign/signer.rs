@@ -14,8 +14,9 @@ use crate::{
     common::{file_size_to_str, printkv},
     file_io::DVHashType,
     walker::dir::WalkerDirectory,
-    Error,
 };
+
+use crate::error::Result;
 
 #[derive(Debug, Serialize)]
 struct DVSignature {
@@ -25,7 +26,7 @@ struct DVSignature {
 }
 
 impl DVSignature {
-    pub fn new(walker: &WalkerDirectory) -> Result<DVSignature, Error> {
+    pub fn new(walker: &WalkerDirectory) -> Result<DVSignature> {
         let encoded_data = walker.encode()?;
 
         let mut hash = Sha512::new();
@@ -41,7 +42,7 @@ impl DVSignature {
         })
     }
 
-    pub fn encode(&self) -> Result<String, Error> {
+    pub fn encode(&self) -> Result<String> {
         let json_data = serde_json::to_string(self)?;
         Ok(BASE64_STANDARD.encode(json_data))
     }
@@ -52,7 +53,7 @@ pub fn sign_directory<P: AsRef<Path>>(
     private_key: P,
     hash_type: &str,
     output_sig_file: Option<P>,
-) -> Result<(), Error> {
+) -> Result<()> {
     let directory = canonicalize(directory)?;
     let private_key = canonicalize(private_key)?;
 

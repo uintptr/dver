@@ -6,11 +6,11 @@ use std::{
 
 use log::{info, LevelFilter, Metadata, Record};
 
-use crate::Error;
+use crate::error::{Error, Result};
 
 //const CUR_CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 
-fn now_f64() -> Result<f64, Error> {
+fn now_f64() -> Result<f64> {
     let since = SystemTime::now().duration_since(UNIX_EPOCH)?;
     Ok(since.as_secs_f64())
 }
@@ -52,7 +52,7 @@ impl log::Log for SimpleLogger {
     fn flush(&self) {}
 }
 
-fn get_log_level_from_env() -> Result<LevelFilter, Error> {
+fn get_log_level_from_env() -> Result<LevelFilter> {
     let level = match env::var("LC_LOG_LEVEL") {
         Ok(v) => match v.as_str() {
             "info" => LevelFilter::Info,
@@ -69,7 +69,7 @@ fn get_log_level_from_env() -> Result<LevelFilter, Error> {
 
 static LOGGER: SimpleLogger = SimpleLogger;
 
-pub fn init_logging() -> Result<(), Error> {
+pub fn init_logging() -> Result<()> {
     if log::set_logger(&LOGGER).is_err() {
         return Err(Error::LoggingInitFailure);
     }

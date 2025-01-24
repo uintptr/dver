@@ -2,7 +2,7 @@ use std::{fmt::Display, fs, path::Path};
 
 use serde::Serializer;
 
-use crate::Error;
+use crate::error::Error;
 
 pub fn format_size(bytes: u64) -> String {
     const KB: f64 = 1024.0;
