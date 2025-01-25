@@ -299,7 +299,8 @@ mod tests {
 
         let ident = client.find_identity(&pkey_file).unwrap();
 
-        let signature = client.sign(&ident, b"hello\n").unwrap();
+        let message = b"Hello, World!";
+        let signature = client.sign(&ident, message).unwrap();
 
         info!("{:?}", hex::encode(signature));
     }

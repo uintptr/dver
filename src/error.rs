@@ -44,4 +44,8 @@ pub enum Error {
     // ssh
     #[error("invalid message id {}", .0)]
     SShInvalidMessageId(u8),
+    #[error("unable to connect to ssh-agent")]
+    SshAgentNotRunning,
+    #[error("ssh-agent identity not found for")]
+    SshIdentityNotFound,
 }

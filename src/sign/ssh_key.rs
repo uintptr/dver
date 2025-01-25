@@ -1,74 +1,75 @@
 #![allow(unused)]
-use std::{fmt::format, fs, path::Path};
+use std::{
+    fmt::format,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use log::{info, warn};
-use ssh_key::{HashAlg, PrivateKey};
+use ssh_key::{Cipher, HashAlg, PrivateKey, PublicKey};
 
 use crate::error::{Error, Result};
 
 use super::ssh_agent::SshAgentClient;
 
 pub struct SshSigner {
+    key_file: PathBuf,
     key: PrivateKey,
     agent: Option<SshAgentClient>,
 }
 
-fn connect_ssh_agent(_key: &PrivateKey) -> Result<SshAgentClient> {
-    todo!()
-}
-
 impl SshSigner {
     pub fn new<P: AsRef<Path>>(private_key: P) -> Result<SshSigner> {
-        let encoded_key = fs::read_to_string(private_key)?;
+        let encoded_key = fs::read_to_string(&private_key)?;
 
-        SshSigner::from_buffer(&encoded_key)
+        let key = PrivateKey::from_openssh(encoded_key)?;
+
+        let agent = match key.cipher() {
+            Cipher::None => None,
+            _ => {
+                let agent = match SshAgentClient::new() {
+                    Ok(v) => Some(v),
+                    Err(_) => {
+                        warn!("Unable to connect to ssh-agent");
+                        None
+                    }
+                };
+                agent
+            }
+        };
+
+        Ok(SshSigner {
+            key_file: private_key.as_ref().to_path_buf(),
+            key,
+            agent,
+        })
     }
 
-    pub fn from_buffer(private_key: &str) -> Result<SshSigner> {
-        let key = PrivateKey::from_openssh(private_key)?;
-        info!("{:?}", key);
+    pub fn sign(&mut self, data: &[u8]) -> Result<Vec<u8>> {
+        match self.key.cipher().is_none() {
+            true => self.sign_with_key(data),
+            false => self.sign_with_agent(data),
+        }
+    }
 
-        key.sign("ns", HashAlg::default(), b"message")?;
-
-        let mut agent: Option<SshAgentClient> = None;
-
-        if key.cipher().is_some() {
-            //
-            // key is passwords protected
-            //
-            // 1) try talking to the ssh-agent if it exists
-            // 2) fallback on asking for the password
-            //
-            agent = match connect_ssh_agent(&key) {
-                Ok(v) => Some(v),
-                Err(_) => {
-                    warn!("Unable to connect to ssh-agent");
-                    None
-                }
-            };
-
-            if agent.is_none() {
-                let msg = "encrypted ssh key is not supported".to_string();
-                return Err(Error::NotImplementedError(msg));
-            }
-
-            if agent.is_none() {
-                //
-                // we'll need a password!
-                //
-                todo!()
+    fn sign_with_agent(&mut self, data: &[u8]) -> Result<Vec<u8>> {
+        if let Some(a) = &mut self.agent {
+            match a.find_identity(&self.key_file) {
+                Ok(i) => a.sign(&i, data),
+                Err(e) => return Err(Error::SshIdentityNotFound),
             }
         } else {
-            // that's not ideal
-            warn!("ssh private key is not protected");
+            return Err(Error::SshAgentNotRunning);
         }
-
-        Ok(SshSigner { key, agent })
     }
 
-    pub fn sign(&self, data: &[u8]) -> Result<Vec<u8>> {
+    fn sign_with_key(&self, data: &[u8]) -> Result<Vec<u8>> {
         let sig = self.key.sign("dverify", HashAlg::Sha512, data)?;
         Ok(sig.signature().as_bytes().to_vec())
+    }
+
+    fn key_protected(&self) -> bool {
+        self.key.cipher().is_some()
     }
 }
 
@@ -77,6 +78,7 @@ mod tests {
     use std::env;
 
     use rand::RngCore;
+    use tempfile::tempfile;
 
     use crate::logging::init_logging;
 
@@ -114,10 +116,20 @@ iEDuKa45ETd2d7aQ==
         let key_pass = ssh_test_dir.join("pass");
         let key_no_pass = ssh_test_dir.join("no_pass");
 
-        let s = SshSigner::from_buffer(SSH_KEY).unwrap();
-        s.sign("hello".as_bytes()).unwrap();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let key_file = Path::new(&temp_dir.into_path()).join("key");
+        fs::write(&key_file, SSH_KEY).unwrap();
+        let mut s = SshSigner::new(key_file).unwrap();
+        let ret = s.sign("hello".as_bytes());
 
-        let s = SshSigner::from_buffer(SSH_KEY_NO_PASS).unwrap();
-        s.sign("hello".as_bytes()).unwrap();
+        assert!(ret.is_err());
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let key_file = Path::new(&temp_dir.into_path()).join("key");
+        fs::write(&key_file, SSH_KEY_NO_PASS).unwrap();
+        let mut s = SshSigner::new(&key_file).unwrap();
+        let ret = s.sign("hello".as_bytes());
+
+        assert!(ret.is_ok());
     }
 }
