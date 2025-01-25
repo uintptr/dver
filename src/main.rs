@@ -1,7 +1,7 @@
-use dverify::{sign::signer::sign_directory, verifier::verify_directory};
+use dver::{sign::signer::sign_directory, verifier::verify_directory};
 use structopt::StructOpt;
 
-use dverify::error::Result;
+use dver::error::Result;
 
 #[derive(Debug, StructOpt)]
 #[structopt(about = "Deployment Verification Tool")]
