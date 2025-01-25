@@ -80,5 +80,8 @@ pub fn hash_data(data: &[u8], hash_type: DVHashType) -> Vec<u8>{
         DVHashType::Sha384 => sha_data::<Sha384>(data),
         DVHashType::Sha512 => sha_data::<Sha512>(data),
     }
+}
 
+pub fn hash_string(data: &str, hash_type: DVHashType) -> Vec<u8>{
+    hash_data(data.as_bytes(), hash_type)
 }

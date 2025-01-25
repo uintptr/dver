@@ -1,89 +1,46 @@
-use std::{
-    fs::{self, canonicalize},
-    path::Path,
-};
+use std::{fs, path::Path};
 
-const CUR_SIG_FORMAT_VER: u32 = 1;
-const DEFAULT_SIGN_FILE_NAME: &str = "dver.sig";
+use crate::error::{Error, Result};
 
-use base64::{prelude::BASE64_STANDARD, Engine};
-use serde_derive::Serialize;
-use sha2::{Digest, Sha512};
+use super::ssh_key::SshSigner;
 
-use crate::{
-    common::{file_size_to_str, printkv},
-    hash::DVHashType,
-    walker::dir::WalkerDirectory,
-};
-
-use crate::error::Result;
-
-#[derive(Debug, Serialize)]
-struct DVSignature {
-    version: u32,
-    encoded_data: String,
-    signature: Vec<u8>,
+enum DVKeyType {
+    Ssh,
 }
 
-impl DVSignature {
-    pub fn new(walker: &WalkerDirectory) -> Result<DVSignature> {
-        let encoded_data = walker.encode()?;
+fn guess_key_type<P: AsRef<Path>>(private_key: P) -> Result<DVKeyType> {
+    let _key_data = fs::read_to_string(&private_key);
 
-        let mut hash = Sha512::new();
-
-        hash.update(&encoded_data);
-
-        let signature = hash.finalize().to_vec();
-
-        Ok(DVSignature {
-            version: CUR_SIG_FORMAT_VER,
-            encoded_data,
-            signature,
-        })
+    if private_key.as_ref().ends_with("id_ed25519"){
+        return Ok(DVKeyType::Ssh)
+    }
+    if private_key.as_ref().ends_with("id_rsa"){
+        return Ok(DVKeyType::Ssh)
     }
 
-    pub fn encode(&self) -> Result<String> {
-        let json_data = serde_json::to_string(self)?;
-        Ok(BASE64_STANDARD.encode(json_data))
-    }
+    Err(Error::InputKeyFormatNotSupported)
 }
 
-pub fn sign_directory<P: AsRef<Path>>(
-    directory: P,
-    private_key: P,
-    hash_type: &str,
-    output_sig_file: Option<P>,
-) -> Result<()> {
-    let directory = canonicalize(directory)?;
-    let private_key = canonicalize(private_key)?;
+pub enum DVSigner {
+    Ssh(SshSigner),
+}
 
-    let out_file = match &output_sig_file {
-        Some(v) => v.as_ref(),
-        None => &directory.join(DEFAULT_SIGN_FILE_NAME),
-    };
+impl DVSigner {
+    pub fn new<P: AsRef<Path>>(private_key: P) -> Result<DVSigner> {
+        //
+        // try to get the file type
+        //
 
-    println!("Signing");
-    printkv("Directory", directory.display());
-    printkv("Private Key", private_key.display());
-    printkv("Hash Type", hash_type);
-    printkv("Signature File", out_file.display());
+        let signer = match guess_key_type(&private_key)? {
+            DVKeyType::Ssh => SshSigner::new(private_key)?,
+        };
 
-    if out_file.exists() {
-        fs::remove_file(out_file)?;
+        Ok(DVSigner::Ssh(signer))
     }
 
-    let hash_type: DVHashType = hash_type.parse()?;
-
-    let d = WalkerDirectory::new(&directory, hash_type)?;
-
-    let s = DVSignature::new(&d)?;
-
-    let signature_data = s.encode()?;
-
-    fs::write(out_file, signature_data)?;
-
-    let file_size = file_size_to_str(out_file).unwrap_or("".into());
-    printkv("Signature Size", file_size);
-
-    Ok(())
+    pub fn sign(&mut self, data: &[u8]) -> Result<Vec<u8>> {
+        match self {
+            DVSigner::Ssh(s) => s.sign(data),
+        }
+    }
 }

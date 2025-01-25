@@ -1,4 +1,4 @@
-use dver::{sign::signer::sign_directory, verifier::verify_directory};
+use dver::{logging::init_logging, sign::sign_directory::sign_directory, verifier::verify_directory};
 use structopt::StructOpt;
 
 use dver::error::Result;
@@ -29,6 +29,8 @@ enum DVCommand {
 
 fn main() -> Result<()> {
     let opt = DVCommand::from_args();
+
+    init_logging()?;
 
     match opt {
         DVCommand::Sign {
