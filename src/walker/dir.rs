@@ -10,7 +10,7 @@ use crate::common::vec_hex_serializer;
 
 use base64::{prelude::BASE64_STANDARD, Engine};
 use serde_derive::Serialize;
-use sha2::{Digest, Sha256, Sha384, Sha512};
+use sha2::{Digest, Sha256, Sha512};
 
 use crate::error::Error;
 use crate::hash::DVHashType;
@@ -78,7 +78,6 @@ impl WalkerDirectory {
 
         d.hash = match hash_type {
             DVHashType::Sha256 => d.hash::<Sha256>(),
-            DVHashType::Sha384 => d.hash::<Sha384>(),
             DVHashType::Sha512 => d.hash::<Sha512>(),
         }?;
 

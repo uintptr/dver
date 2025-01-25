@@ -67,7 +67,7 @@ impl DVSignature {
 pub fn sign_directory<P: AsRef<Path>>(
     directory: P,
     private_key: P,
-    hash_type: &str,
+    hash_type: DVHashType,
     output_sig_file: Option<P>,
 ) -> Result<()> {
     let directory = canonicalize(directory)?;
@@ -87,8 +87,6 @@ pub fn sign_directory<P: AsRef<Path>>(
     if out_file.exists() {
         fs::remove_file(out_file)?;
     }
-
-    let hash_type: DVHashType = hash_type.parse()?;
 
     let d = WalkerDirectory::new(&directory, hash_type)?;
 
