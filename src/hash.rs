@@ -53,6 +53,15 @@ fn sha_file<T: Digest, P: AsRef<Path>>(file_path: P) -> Result<Vec<u8>> {
     Ok(digest.to_vec())
 }
 
+fn sha_data<T: Digest>(data: &[u8]) -> Vec<u8>{
+
+    let mut hash = T::new();
+
+    hash.update(data);
+
+    hash.finalize().to_vec()
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// PUBLIC
 ////////////////////////////////////////////////////////////////////////////////
@@ -62,4 +71,14 @@ pub fn hash_file<P: AsRef<Path>>(file_path: P, hash_type: DVHashType) -> Result<
         DVHashType::Sha384 => sha_file::<Sha384, _>(file_path),
         DVHashType::Sha512 => sha_file::<Sha512, _>(file_path),
     }
+}
+
+pub fn hash_data(data: &[u8], hash_type: DVHashType) -> Vec<u8>{
+
+    match hash_type {
+        DVHashType::Sha256 => sha_data::<Sha256>(data),
+        DVHashType::Sha384 => sha_data::<Sha384>(data),
+        DVHashType::Sha512 => sha_data::<Sha512>(data),
+    }
+
 }

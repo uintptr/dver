@@ -1,6 +1,6 @@
 pub mod common;
 pub mod error;
-pub mod file_io;
+pub mod hash;
 pub mod key;
 pub mod logging;
 pub mod sign;

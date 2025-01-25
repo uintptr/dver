@@ -12,7 +12,7 @@ use sha2::{Digest, Sha512};
 
 use crate::{
     common::{file_size_to_str, printkv},
-    file_io::DVHashType,
+    hash::DVHashType,
     walker::dir::WalkerDirectory,
 };
 

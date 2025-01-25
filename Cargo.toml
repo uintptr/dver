@@ -23,4 +23,5 @@ lto = true
 
 [dev-dependencies]
 home = "0.5.11"
+pretty-hex = "0.4.1"
 rand = "0.8.5"

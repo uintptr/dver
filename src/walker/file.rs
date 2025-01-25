@@ -5,7 +5,7 @@ use serde_derive::Serialize;
 
 use crate::{
     common::vec_hex_serializer,
-    file_io::{hash_file, DVHashType},
+    hash::{hash_file, DVHashType},
 };
 
 use crate::error::Error;

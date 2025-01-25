@@ -13,7 +13,7 @@ use serde_derive::Serialize;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 use crate::error::Error;
-use crate::file_io::DVHashType;
+use crate::hash::DVHashType;
 
 use super::file::WalkerFile;
 

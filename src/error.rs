@@ -40,4 +40,8 @@ pub enum Error {
     SshAgentUnknownMessage(String),
     #[error(transparent)]
     Utf8(#[from] std::str::Utf8Error),
+
+    // ssh
+    #[error("invalid message id {}", .0)]
+    SShInvalidMessageId(u8),
 }
