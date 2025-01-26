@@ -1,6 +1,6 @@
 use dver::{
     hash::DVHashType, logging::init_logging, sign::sign_directory::sign_directory,
-    verifier::verify_directory,
+    verify::verify_directory::verify_directory,
 };
 use structopt::StructOpt;
 
@@ -15,7 +15,7 @@ struct SignOpt {
     #[structopt(long, short = "k")]
     private_key: String,
     /// Output Signature File
-    #[structopt(long, short = "o")]
+    #[structopt(long = "output", short = "o")]
     signature_file: Option<String>,
     /// Hashing Algorithm
     #[structopt(long,default_value="sha256", possible_values = &["sha256", "sha512"])]
@@ -33,6 +33,12 @@ struct VerifyOpt {
     /// Public key file path
     #[structopt(long, short = "k")]
     public_key: String,
+    /// Input Signature File
+    #[structopt(long = "input", short = "i")]
+    signature_file: Option<String>,
+    /// Hashing Algorithm
+    #[structopt(long,default_value="sha256", possible_values = &["sha256", "sha512"])]
+    hash_type: DVHashType,
     /// Verbose
     #[structopt(long, short)]
     verbose: bool,
@@ -66,6 +72,11 @@ fn main() -> Result<()> {
             opt.hash_type,
             opt.signature_file,
         ),
-        DVCommand::Verify(opt) => verify_directory(&opt.directory, &opt.public_key),
+        DVCommand::Verify(opt) => verify_directory(
+            opt.directory,
+            opt.public_key,
+            opt.hash_type,
+            opt.signature_file,
+        ),
     }
 }

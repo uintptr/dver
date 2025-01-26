@@ -4,6 +4,12 @@ use serde::Serializer;
 
 use crate::error::Error;
 
+pub const DEFAULT_SIGN_FILE_NAME: &str = "dver.sig";
+
+pub enum DVKeyType {
+    Ssh,
+}
+
 pub fn format_size(bytes: u64) -> String {
     const KB: f64 = 1024.0;
     const MB: f64 = KB * 1024.0;
@@ -23,7 +29,11 @@ pub fn format_size(bytes: u64) -> String {
     }
 }
 
-pub fn file_size_to_str<P: AsRef<Path>>(file_path: P) -> Result<String, Error> {
+pub fn fmt_len(size: usize) -> String {
+    format_size(size as u64)
+}
+
+pub fn file_size_to_str<P: AsRef<Path>>(file_path: P) -> crate::error::Result<String> {
     let stat = fs::metadata(file_path)?;
 
     //Ok(format_size(stat.size()))
@@ -40,4 +50,17 @@ where
     S: Serializer,
 {
     serializer.serialize_str(&hex::encode(bytes))
+}
+
+pub fn guess_key_type<P: AsRef<Path>>(private_key: P) -> crate::error::Result<DVKeyType> {
+    let _key_data = fs::read_to_string(&private_key);
+
+    if private_key.as_ref().ends_with("id_ed25519") {
+        return Ok(DVKeyType::Ssh);
+    }
+    if private_key.as_ref().ends_with("id_rsa") {
+        return Ok(DVKeyType::Ssh);
+    }
+
+    Err(Error::InputKeyFormatNotSupported)
 }

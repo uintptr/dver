@@ -5,13 +5,12 @@ use std::{
 };
 
 const CUR_SIG_FORMAT_VER: u32 = 1;
-const DEFAULT_SIGN_FILE_NAME: &str = "dver.sig";
 
 use base64::{prelude::BASE64_STANDARD, Engine};
-use serde_derive::Serialize;
+use serde_derive::{Deserialize, Serialize};
 
 use crate::{
-    common::{file_size_to_str, printkv},
+    common::{file_size_to_str, printkv, DEFAULT_SIGN_FILE_NAME},
     hash::{hash_string, DVHashType},
     walker::dir::WalkerDirectory,
 };
@@ -20,8 +19,8 @@ use crate::error::Result;
 
 use super::signer::DVSigner;
 
-#[derive(Debug, Serialize)]
-struct DVSignature {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DVSignature {
     version: u32,
     directory_data: String,
     signature: String,
@@ -42,6 +41,16 @@ impl DVSignature {
             directory_data,
             signature: signature_b64,
         })
+    }
+
+    pub fn from_file<P: AsRef<Path>>(signature_file: P) -> Result<DVSignature> {
+        let b64_data = fs::read_to_string(&signature_file)?;
+
+        let pem = pem::parse(b64_data)?;
+
+        let s: DVSignature = serde_json::from_slice(pem.contents())?;
+
+        Ok(s)
     }
 
     pub fn to_file<P: AsRef<Path>>(&self, file_path: P) -> Result<()> {
@@ -78,23 +87,25 @@ pub fn sign_directory<P: AsRef<Path>>(
         None => &directory.join(DEFAULT_SIGN_FILE_NAME),
     };
 
-    println!("Signing");
+    let out_file = canonicalize(out_file)?;
+
+    println!("Signing:");
     printkv("Directory", directory.display());
     printkv("Private Key", private_key.display());
     printkv("Hash Type", hash_type);
     printkv("Signature File", out_file.display());
 
     if out_file.exists() {
-        fs::remove_file(out_file)?;
+        fs::remove_file(&out_file)?;
     }
 
     let d = WalkerDirectory::new(&directory, hash_type)?;
 
     let s = DVSignature::new(&d, private_key)?;
 
-    s.to_file(out_file)?;
+    s.to_file(&out_file)?;
 
-    let file_size = file_size_to_str(out_file).unwrap_or("".into());
+    let file_size = file_size_to_str(&out_file).unwrap_or("".into());
     printkv("Signature Size", file_size);
 
     Ok(())

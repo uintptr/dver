@@ -1,5 +1,6 @@
 use std::{path::StripPrefixError, time::SystemTimeError};
 
+use pem::PemError;
 use thiserror::Error;
 
 pub type Result<T> = core::result::Result<T, Error>;
@@ -40,6 +41,9 @@ pub enum Error {
     SshAgentUnknownMessage(String),
     #[error(transparent)]
     Utf8(#[from] std::str::Utf8Error),
+
+    #[error(transparent)]
+    Pem(#[from] PemError),
 
     // ssh
     #[error("invalid message id {}", .0)]

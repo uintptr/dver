@@ -7,7 +7,7 @@ use std::{
     vec,
 };
 
-const DV_NS: &[u8] = b"hello";
+pub const DV_NS: &[u8] = b"hello";
 const SIG_ALG: &[u8] = b"sha512";
 
 use log::info;
