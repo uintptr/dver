@@ -12,6 +12,7 @@ use crate::error::{Error, Result};
 
 use super::ssh_agent::SshAgentClient;
 
+#[derive(Debug)]
 pub struct SshSigner {
     key_file: PathBuf,
     key: PrivateKey,
@@ -26,16 +27,13 @@ impl SshSigner {
 
         let agent = match key.cipher() {
             Cipher::None => None,
-            _ => {
-                let agent = match SshAgentClient::new() {
-                    Ok(v) => Some(v),
-                    Err(_) => {
-                        warn!("Unable to connect to ssh-agent");
-                        None
-                    }
-                };
-                agent
-            }
+            _ => match SshAgentClient::new() {
+                Ok(v) => Some(v),
+                Err(_) => {
+                    warn!("Unable to connect to ssh-agent");
+                    None
+                }
+            },
         };
 
         Ok(SshSigner {
@@ -56,10 +54,10 @@ impl SshSigner {
         if let Some(a) = &mut self.agent {
             match a.find_identity(&self.key_file) {
                 Ok(i) => a.sign(&i, data),
-                Err(e) => return Err(Error::SshIdentityNotFound),
+                Err(e) => Err(Error::SshIdentityNotFound),
             }
         } else {
-            return Err(Error::SshAgentNotRunning);
+            Err(Error::SshAgentNotRunning)
         }
     }
 

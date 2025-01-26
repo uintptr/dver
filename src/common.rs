@@ -2,13 +2,7 @@ use std::{fmt::Display, fs, path::Path};
 
 use serde::Serializer;
 
-use crate::error::Error;
-
 pub const DEFAULT_SIGN_FILE_NAME: &str = "dver.sig";
-
-pub enum DVKeyType {
-    Ssh,
-}
 
 pub fn format_size(bytes: u64) -> String {
     const KB: f64 = 1024.0;
@@ -50,17 +44,4 @@ where
     S: Serializer,
 {
     serializer.serialize_str(&hex::encode(bytes))
-}
-
-pub fn guess_key_type<P: AsRef<Path>>(private_key: P) -> crate::error::Result<DVKeyType> {
-    let _key_data = fs::read_to_string(&private_key);
-
-    if private_key.as_ref().ends_with("id_ed25519") {
-        return Ok(DVKeyType::Ssh);
-    }
-    if private_key.as_ref().ends_with("id_rsa") {
-        return Ok(DVKeyType::Ssh);
-    }
-
-    Err(Error::InputKeyFormatNotSupported)
 }

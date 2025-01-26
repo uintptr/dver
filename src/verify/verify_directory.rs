@@ -8,7 +8,6 @@ use crate::{
     error::Result,
     hash::{hash_string, DVHashType},
     sign::sign_directory::DVSignature,
-    verify::verifier::DVVerifier,
     walker::dir::WalkerDirectory,
 };
 
@@ -42,11 +41,7 @@ pub fn verify_directory<P: AsRef<Path>>(
 
     printkv("Data Hash", hex::encode(dir_data_hash));
 
-    let v = DVVerifier::new(public_key)?;
-
     //v.verify(data
-
-    info!("{:?}", v);
 
     // rebuild t
     todo!()

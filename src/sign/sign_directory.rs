@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::{
     fs::{self, canonicalize, File},
     io::Write,
@@ -12,12 +14,11 @@ use serde_derive::{Deserialize, Serialize};
 use crate::{
     common::{file_size_to_str, printkv, DEFAULT_SIGN_FILE_NAME},
     hash::{hash_string, DVHashType},
+    key::keys::DVPrivateKey,
     walker::dir::WalkerDirectory,
 };
 
 use crate::error::Result;
-
-use super::signer::DVSigner;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DVSignature {
@@ -32,7 +33,7 @@ impl DVSignature {
 
         let data_hash = hash_string(&directory_data, DVHashType::Sha512);
 
-        let mut signer = DVSigner::new(private_key)?;
+        let mut signer = DVPrivateKey::new(private_key)?;
         let signature = signer.sign(&data_hash)?;
         let signature_b64 = BASE64_STANDARD.encode(signature);
 
@@ -87,8 +88,6 @@ pub fn sign_directory<P: AsRef<Path>>(
         None => &directory.join(DEFAULT_SIGN_FILE_NAME),
     };
 
-    let out_file = canonicalize(out_file)?;
-
     println!("Signing:");
     printkv("Directory", directory.display());
     printkv("Private Key", private_key.display());
@@ -96,16 +95,16 @@ pub fn sign_directory<P: AsRef<Path>>(
     printkv("Signature File", out_file.display());
 
     if out_file.exists() {
-        fs::remove_file(&out_file)?;
+        fs::remove_file(out_file)?;
     }
 
     let d = WalkerDirectory::new(&directory, hash_type)?;
 
     let s = DVSignature::new(&d, private_key)?;
 
-    s.to_file(&out_file)?;
+    s.to_file(out_file)?;
 
-    let file_size = file_size_to_str(&out_file).unwrap_or("".into());
+    let file_size = file_size_to_str(out_file).unwrap_or("".into());
     printkv("Signature Size", file_size);
 
     Ok(())

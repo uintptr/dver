@@ -52,6 +52,7 @@ impl AgentMessage {
     }
 }
 
+#[derive(Debug)]
 pub struct SshAgentClient {
     stream: UnixStream,
 }
@@ -143,7 +144,7 @@ impl SshAgentClient {
         Ok(identities)
     }
 
-    fn send_signing_request(&mut self, identity: &SshIdentity, data: &[u8]) -> Result<()>{
+    fn send_signing_request(&mut self, identity: &SshIdentity, data: &[u8]) -> Result<()> {
         // public key
         let mut pub_key_vec: Vec<u8> = Vec::new();
         let alg_len = identity.algorithm.len() as u32;
@@ -258,13 +259,12 @@ impl SshAgentClient {
     // https://www.agwa.name/blog/post/ssh_signatures
     // https://cvsweb.openbsd.org/src/usr.bin/ssh/PROTOCOL.sshsig?annotate=HEAD
     pub fn sign(&mut self, identity: &SshIdentity, data: &[u8]) -> Result<Vec<u8>> {
-
         self.send_signing_request(identity, data)?;
 
         let ans_len = self.read_u32()?;
         let ans_msg_id = self.read_u8()?;
 
-        if 0xe != ans_msg_id{
+        if 0xe != ans_msg_id {
             return Err(Error::SShInvalidMessageId(ans_msg_id));
         }
 
