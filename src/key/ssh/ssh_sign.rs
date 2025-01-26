@@ -10,7 +10,7 @@ use ssh_key::{Cipher, HashAlg, PrivateKey, PublicKey};
 
 use crate::error::{Error, Result};
 
-use super::{ ssh_agent::SshAgentClient};
+use super::ssh_agent::SshAgentClient;
 
 pub struct SshSigner {
     key_file: PathBuf,
@@ -51,7 +51,6 @@ impl SshSigner {
             false => self.sign_with_agent(data),
         }
     }
-
 
     fn sign_with_agent(&mut self, data: &[u8]) -> Result<Vec<u8>> {
         if let Some(a) = &mut self.agent {

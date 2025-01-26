@@ -3,9 +3,8 @@ use std::path::Path;
 use crate::{
     common::{guess_key_type, DVKeyType},
     error::Result,
+    key::ssh::ssh_verify::SshVerifier,
 };
-
-use super::verifier_ssh::SshVerifier;
 
 #[derive(Debug)]
 pub enum DVVerifier {

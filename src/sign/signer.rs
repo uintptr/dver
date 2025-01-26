@@ -3,9 +3,8 @@ use std::path::Path;
 use crate::{
     common::{guess_key_type, DVKeyType},
     error::Result,
+    key::ssh::ssh_sign::SshSigner,
 };
-
-use super::ssh_key::SshSigner;
 
 pub enum DVSigner {
     Ssh(SshSigner),
