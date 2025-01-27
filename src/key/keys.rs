@@ -1,5 +1,7 @@
 use std::path::Path;
 
+use log::info;
+
 use crate::error::{Error, Result};
 
 use super::ssh::{ssh_sign::SshSigner, ssh_verify::SshVerifier};
@@ -10,33 +12,27 @@ pub enum DVKey {
     PublicOpenSsh(SshVerifier),
 }
 
-#[derive(Debug)]
-pub struct DVPrivateKey {
-    pub key: DVKey,
-}
-
-#[derive(Debug)]
-pub struct DVPublicKey {
-    pub key: DVKey,
-}
-
-fn get_key<P: AsRef<Path>>(path: P) -> Result<DVKey> {
+fn guess_key_by_file_name<P: AsRef<Path>>(path: P) -> Result<DVKey> {
     if path.as_ref().ends_with("id_ed25519") {
+        info!("loading a ed25519 ssh private key");
         let key = SshSigner::new(path)?;
         return Ok(DVKey::PrivateOpenSsh(key));
     }
 
     if path.as_ref().ends_with("id_rsa") {
+        info!("loading a rsa ssh private key");
         let key = SshSigner::new(path)?;
         return Ok(DVKey::PrivateOpenSsh(key));
     }
 
     if path.as_ref().ends_with("id_ed25519.pub") {
+        info!("loading a ed25519 ssh public key");
         let key = SshVerifier::new(path)?;
         return Ok(DVKey::PublicOpenSsh(key));
     }
 
     if path.as_ref().ends_with("id_rsa.pub") {
+        info!("loading a rsa ssh public key");
         let key = SshVerifier::new(path)?;
         return Ok(DVKey::PublicOpenSsh(key));
     }
@@ -44,28 +40,25 @@ fn get_key<P: AsRef<Path>>(path: P) -> Result<DVKey> {
     Err(Error::InputKeyFormatNotSupported)
 }
 
-impl DVPrivateKey {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<DVPrivateKey> {
-        let key = get_key(path)?;
-        Ok(DVPrivateKey { key })
+impl DVKey {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<DVKey> {
+        // try a few way to guess the user input
+        if let Ok(k) = guess_key_by_file_name(path) {
+            return Ok(k);
+        }
+
+        Err(Error::InputKeyFormatNotSupported)
     }
 
     pub fn sign(self, data: &[u8]) -> Result<Vec<u8>> {
-        match self.key {
+        match self {
             DVKey::PrivateOpenSsh(mut k) => k.sign(data),
             _ => Err(Error::KeyInvalidType),
         }
     }
-}
 
-impl DVPublicKey {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<DVPublicKey> {
-        let key = get_key(path)?;
-        Ok(DVPublicKey { key })
-    }
-
-    pub fn verify(&self, msg: &[u8], signature: &[u8]) -> Result<()> {
-        match &self.key {
+    pub fn verify(self, msg: &[u8], signature: &[u8]) -> Result<()> {
+        match self {
             DVKey::PublicOpenSsh(k) => k.verify(msg, signature),
             _ => Err(Error::KeyInvalidType),
         }
@@ -89,7 +82,7 @@ mod tests {
 
         let ssh_key = home.join(".ssh").join("id_ed25519");
 
-        let k = DVPrivateKey::new(ssh_key).unwrap();
+        let k = DVKey::new(ssh_key).unwrap();
 
         info!("key: {:?}", k);
     }

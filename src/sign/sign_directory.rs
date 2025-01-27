@@ -11,6 +11,7 @@ const CUR_SIG_FORMAT_VER: u32 = 1;
 
 use crate::{
     common::hash_data,
+    key::keys::DVKey,
     serializer::{base64_deserializer, base64_serializer},
 };
 
@@ -24,7 +25,6 @@ use serde_derive::{Deserialize, Serialize};
 use crate::{
     common::{file_size_to_str, printkv, DEFAULT_SIGN_FILE_NAME},
     common::{hash_string, DVHashType},
-    key::keys::DVPrivateKey,
     walker::dir::WalkerDirectory,
 };
 
@@ -82,7 +82,7 @@ impl DVSignature {
     }
 
     pub fn sign<P: AsRef<Path>>(&mut self, private_key: P) -> Result<()> {
-        let key = DVPrivateKey::new(private_key)?;
+        let key = DVKey::new(private_key)?;
 
         let data_hash = hash_string(&self.data, DVHashType::Sha512);
 
