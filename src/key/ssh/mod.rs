@@ -1,4 +1,4 @@
-pub mod ssh_sign;
-pub mod ssh_verify;
+pub mod ssh_private;
+pub mod ssh_public;
 
 mod ssh_agent;

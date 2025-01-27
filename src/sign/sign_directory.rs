@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use std::{
     fs::{self, canonicalize, File},
     io::Write,
@@ -7,18 +5,12 @@ use std::{
     vec,
 };
 
-const CUR_SIG_FORMAT_VER: u32 = 1;
-
 use crate::{
-    common::hash_data,
-    key::keys::DVKey,
+    key::keys::{load_private_key, PrivateKeyTrait},
     serializer::{base64_deserializer, base64_serializer},
 };
 
-use base64::{
-    prelude::{BASE64_STANDARD, BASE64_STANDARD_NO_PAD},
-    Engine,
-};
+use base64::{prelude::BASE64_STANDARD, Engine};
 use log::{info, warn};
 use serde_derive::{Deserialize, Serialize};
 
@@ -38,6 +30,12 @@ pub struct DVSignature {
         deserialize_with = "base64_deserializer"
     )]
     pub signature: Vec<u8>,
+}
+
+impl Default for DVSignature {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl DVSignature {
@@ -82,7 +80,7 @@ impl DVSignature {
     }
 
     pub fn sign<P: AsRef<Path>>(&mut self, private_key: P) -> Result<()> {
-        let key = DVKey::new(private_key)?;
+        let mut key = load_private_key(private_key)?;
 
         let data_hash = hash_string(&self.data, DVHashType::Sha512);
 
@@ -125,7 +123,7 @@ pub fn sign_directory<P: AsRef<Path>>(
     let mut s = DVSignature::new();
 
     s.with_data(&walker.encode()?);
-    s.sign(private_key);
+    s.sign(private_key)?;
     s.to_file(out_file)?;
 
     let file_size = file_size_to_str(out_file).unwrap_or("".into());

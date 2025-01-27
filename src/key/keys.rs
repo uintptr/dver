@@ -4,65 +4,46 @@ use log::info;
 
 use crate::error::{Error, Result};
 
-use super::ssh::{ssh_sign::SshSigner, ssh_verify::SshVerifier};
+use super::ssh::{ssh_private::SshSigner, ssh_public::SshVerifier};
 
-#[derive(Debug)]
-pub enum DVKey {
-    PrivateOpenSsh(SshSigner),
-    PublicOpenSsh(SshVerifier),
+pub trait PrivateKeyTrait {
+    fn sign(&mut self, data: &[u8]) -> Result<Vec<u8>>;
 }
 
-fn guess_key_by_file_name<P: AsRef<Path>>(path: P) -> Result<DVKey> {
+pub trait PublicKeyTrait {
+    fn verify(&self, msg: &[u8], signature: &[u8]) -> Result<()>;
+}
+
+pub fn load_private_key<P: AsRef<Path>>(path: P) -> Result<impl PrivateKeyTrait> {
     if path.as_ref().ends_with("id_ed25519") {
         info!("loading a ed25519 ssh private key");
         let key = SshSigner::new(path)?;
-        return Ok(DVKey::PrivateOpenSsh(key));
+        return Ok(key);
     }
 
     if path.as_ref().ends_with("id_rsa") {
         info!("loading a rsa ssh private key");
         let key = SshSigner::new(path)?;
-        return Ok(DVKey::PrivateOpenSsh(key));
-    }
-
-    if path.as_ref().ends_with("id_ed25519.pub") {
-        info!("loading a ed25519 ssh public key");
-        let key = SshVerifier::new(path)?;
-        return Ok(DVKey::PublicOpenSsh(key));
-    }
-
-    if path.as_ref().ends_with("id_rsa.pub") {
-        info!("loading a rsa ssh public key");
-        let key = SshVerifier::new(path)?;
-        return Ok(DVKey::PublicOpenSsh(key));
+        return Ok(key);
     }
 
     Err(Error::InputKeyFormatNotSupported)
 }
 
-impl DVKey {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<DVKey> {
-        // try a few way to guess the user input
-        if let Ok(k) = guess_key_by_file_name(path) {
-            return Ok(k);
-        }
-
-        Err(Error::InputKeyFormatNotSupported)
+pub fn load_public_key<P: AsRef<Path>>(path: P) -> Result<impl PublicKeyTrait> {
+    if path.as_ref().ends_with("id_ed25519.pub") {
+        info!("loading a ed25519 ssh public key");
+        let key = SshVerifier::new(path)?;
+        return Ok(key);
     }
 
-    pub fn sign(self, data: &[u8]) -> Result<Vec<u8>> {
-        match self {
-            DVKey::PrivateOpenSsh(mut k) => k.sign(data),
-            _ => Err(Error::KeyInvalidType),
-        }
+    if path.as_ref().ends_with("id_rsa.pub") {
+        info!("loading a rsa ssh public key");
+        let key = SshVerifier::new(path)?;
+        return Ok(key);
     }
 
-    pub fn verify(self, msg: &[u8], signature: &[u8]) -> Result<()> {
-        match self {
-            DVKey::PublicOpenSsh(k) => k.verify(msg, signature),
-            _ => Err(Error::KeyInvalidType),
-        }
-    }
+    Err(Error::InputKeyFormatNotSupported)
 }
 
 #[cfg(test)]
@@ -72,8 +53,6 @@ mod tests {
 
     use super::*;
 
-    use log::info;
-
     #[test]
     fn test_example() {
         init_logging().unwrap();
@@ -82,8 +61,6 @@ mod tests {
 
         let ssh_key = home.join(".ssh").join("id_ed25519");
 
-        let k = DVKey::new(ssh_key).unwrap();
-
-        info!("key: {:?}", k);
+        load_private_key(ssh_key).unwrap();
     }
 }

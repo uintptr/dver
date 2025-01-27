@@ -1,4 +1,3 @@
-#![allow(unused)]
 use std::{fs::canonicalize, path::Path};
 
 use log::info;
@@ -6,7 +5,7 @@ use log::info;
 use crate::{
     common::{hash_string, printkv, DVHashType, DEFAULT_SIGN_FILE_NAME},
     error::Result,
-    key::keys::DVKey,
+    key::keys::{load_public_key, PublicKeyTrait},
     sign::sign_directory::DVSignature,
     walker::dir::WalkerDirectory,
 };
@@ -44,7 +43,7 @@ pub fn verify_directory<P: AsRef<Path>>(
     info!("data hash: {}", hex::encode(&dir_data_hash));
     info!("data sign: {}", hex::encode(&s.signature));
 
-    let verifier = DVKey::new(public_key)?;
+    let verifier = load_public_key(public_key)?;
 
     let ret = verifier.verify(&dir_data_hash, &s.signature);
 
