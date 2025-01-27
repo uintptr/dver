@@ -1,12 +1,10 @@
-#![allow(unused)]
 use std::{
-    fmt::format,
     fs,
     path::{Path, PathBuf},
 };
 
-use log::{info, warn};
-use ssh_key::{Cipher, HashAlg, PrivateKey, PublicKey};
+use log::warn;
+use ssh_key::{Cipher, HashAlg, PrivateKey};
 
 use crate::{
     error::{Error, Result},
@@ -59,7 +57,7 @@ impl SshSigner {
         if let Some(a) = &mut self.agent {
             match a.find_identity(&self.key_file) {
                 Ok(i) => a.sign(&i, data),
-                Err(e) => Err(Error::SshIdentityNotFound),
+                Err(_) => Err(Error::SshIdentityNotFound),
             }
         } else {
             Err(Error::SshAgentNotRunning)
@@ -70,18 +68,10 @@ impl SshSigner {
         let sig = self.key.sign("dverify", HashAlg::Sha512, data)?;
         Ok(sig.signature().as_bytes().to_vec())
     }
-
-    fn key_protected(&self) -> bool {
-        self.key.cipher().is_some()
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::env;
-
-    use rand::RngCore;
-    use tempfile::tempfile;
 
     use crate::logging::init_logging;
 
@@ -111,13 +101,6 @@ iEDuKa45ETd2d7aQ==
     #[test]
     fn test_ssh_sign() {
         init_logging().unwrap();
-
-        let cwd = env::current_dir().unwrap();
-
-        let ssh_test_dir = Path::new(&cwd).join("tests").join("ssh");
-
-        let key_pass = ssh_test_dir.join("pass");
-        let key_no_pass = ssh_test_dir.join("no_pass");
 
         let temp_dir = tempfile::tempdir().unwrap();
         let key_file = Path::new(&temp_dir.into_path()).join("key");

@@ -1,4 +1,3 @@
-#![allow(unused)]
 use std::{
     env, fs,
     io::{Read, Write},
@@ -13,7 +12,6 @@ const SIG_ALG: &[u8] = b"sha512";
 
 use log::info;
 use serde_derive::Serialize;
-use sha2::Sha512;
 use ssh_key::PrivateKey;
 
 use crate::{
@@ -62,7 +60,6 @@ pub struct SshAgentClient {
 pub struct SshIdentity {
     algorithm: String,
     pub_key: Vec<u8>,
-    comment: String,
 }
 
 impl SshAgentClient {
@@ -81,7 +78,7 @@ impl SshAgentClient {
         Ok(SshAgentClient { stream })
     }
 
-    fn read_u32(&mut self) -> Result<(u32)> {
+    fn read_u32(&mut self) -> Result<u32> {
         let mut buffer = [0; 4];
         self.stream.read_exact(&mut buffer)?;
         Ok(u32::from_be_bytes(buffer))
@@ -120,13 +117,9 @@ impl SshAgentClient {
 
         let algorithm = self.read_string()?;
         let pub_key = self.read_buffer()?;
-        let comment = self.read_string()?;
+        self.read_string()?; // comment
 
-        Ok(SshIdentity {
-            algorithm,
-            pub_key,
-            comment,
-        })
+        Ok(SshIdentity { algorithm, pub_key })
     }
 
     fn read_list_keys_answer(&mut self) -> Result<Vec<SshIdentity>> {
@@ -200,9 +193,6 @@ impl SshAgentClient {
         let key_data = fs::read_to_string(key_file)?;
         let key = PrivateKey::from_openssh(key_data)?;
 
-        //key.public_key().fingerprint(
-        let public = key.public_key().key_data().ed25519();
-
         for k in self.list_keys()? {
             if "ssh-ed25519" == k.algorithm {
                 if let Some(key) = key.public_key().key_data().ed25519() {
@@ -262,15 +252,15 @@ impl SshAgentClient {
     pub fn sign(&mut self, identity: &SshIdentity, data: &[u8]) -> Result<Vec<u8>> {
         self.send_signing_request(identity, data)?;
 
-        let ans_len = self.read_u32()?;
+        self.read_u32()?; // answer len
         let ans_msg_id = self.read_u8()?;
 
         if 0xe != ans_msg_id {
             return Err(Error::SShInvalidMessageId(ans_msg_id));
         }
 
-        let msg_len = self.read_u32()?;
-        let alg = self.read_string()?;
+        self.read_u32()?; // msg len
+        self.read_string()?; // alg
         let sign = self.read_buffer()?;
 
         info!("{}", pretty_hex::pretty_hex(&sign));
@@ -281,10 +271,8 @@ impl SshAgentClient {
 
 #[cfg(test)]
 mod tests {
-    use std::env;
 
     use home::home_dir;
-    use rand::RngCore;
 
     use crate::logging::init_logging;
 
