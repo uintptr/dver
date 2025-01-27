@@ -4,10 +4,10 @@ use std::{fs::canonicalize, path::Path};
 use log::info;
 
 use crate::{
-    common::{printkv, DEFAULT_SIGN_FILE_NAME},
+    common::{hash_string, printkv, DVHashType, DEFAULT_SIGN_FILE_NAME},
     error::Result,
-    hash::{hash_string, DVHashType},
     sign::sign_directory::DVSignature,
+    verify::verifier::DVVerifier,
     walker::dir::WalkerDirectory,
 };
 
@@ -31,18 +31,29 @@ pub fn verify_directory<P: AsRef<Path>>(
     printkv("Directory", directory.display());
     printkv("Public Key", public_key.display());
     printkv("Signature File", in_file.display());
+    printkv("Hash Type", hash_type);
 
     let s = DVSignature::from_file(&in_file)?;
 
-    let d = WalkerDirectory::new(&directory, hash_type)?;
+    let walker = WalkerDirectory::new(&directory, hash_type)?;
 
-    let dir_data = d.encode()?;
+    let dir_data = walker.encode()?;
     let dir_data_hash = hash_string(&dir_data, DVHashType::Sha512);
 
-    printkv("Data Hash", hex::encode(dir_data_hash));
+    info!("data len: {}", dir_data.len());
+    info!("data hash: {}", hex::encode(&dir_data_hash));
+    info!("data sign: {}", hex::encode(&s.signature));
 
-    //v.verify(data
+    let verifier = DVVerifier::new(public_key)?;
 
-    // rebuild t
-    todo!()
+    let ret = verifier.verify(&dir_data_hash, &s.signature);
+
+    let status = match ret {
+        Ok(_) => "Success",
+        Err(_) => "Failure",
+    };
+
+    printkv("Verification", status);
+
+    ret
 }

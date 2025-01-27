@@ -1,5 +1,5 @@
 use dver::{
-    hash::DVHashType, logging::init_logging, sign::sign_directory::sign_directory,
+    common::DVHashType, logging::init_logging, sign::sign_directory::sign_directory,
     verify::verify_directory::verify_directory,
 };
 use structopt::StructOpt;

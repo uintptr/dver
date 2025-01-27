@@ -8,6 +8,7 @@ use std::{
 };
 
 pub const DV_NS: &[u8] = b"hello";
+pub const DV_NS_STR: &str = "hello";
 const SIG_ALG: &[u8] = b"sha512";
 
 use log::info;
@@ -16,8 +17,8 @@ use sha2::Sha512;
 use ssh_key::PrivateKey;
 
 use crate::{
+    common::{hash_data, DVHashType},
     error::{Error, Result},
-    hash::{hash_data, DVHashType},
 };
 
 #[derive(Debug, Serialize)]
@@ -271,6 +272,8 @@ impl SshAgentClient {
         let msg_len = self.read_u32()?;
         let alg = self.read_string()?;
         let sign = self.read_buffer()?;
+
+        info!("{}", pretty_hex::pretty_hex(&sign));
 
         Ok(sign.to_vec())
     }

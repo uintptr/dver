@@ -1,8 +1,10 @@
 use std::{fs, path::Path};
 
-use ssh_key::PublicKey;
+use ssh_key::{HashAlg, PublicKey, Signature, SshSig};
 
-use crate::error::Result;
+use crate::error::{Error, Result};
+
+use super::ssh_agent::DV_NS_STR;
 
 #[derive(Debug)]
 pub struct SshVerifier {
@@ -18,10 +20,19 @@ impl SshVerifier {
         Ok(SshVerifier { pub_key })
     }
 
-    pub fn verify(&self, _msg: &[u8], _signature: &[u8]) -> Result<()> {
-        //let s = self.pub_key.key_data()
+    pub fn verify(&self, msg: &[u8], signature: &[u8]) -> Result<()> {
+        let sig = Signature::new(self.pub_key.algorithm(), signature)?;
 
-        //Ok(self.pub_key.verify(DV_NS, msg, signature)?)
-        Ok(())
+        let ssh_sig = SshSig::new(
+            self.pub_key.key_data().clone(),
+            DV_NS_STR,
+            HashAlg::Sha512,
+            sig,
+        )?;
+
+        match self.pub_key.verify(DV_NS_STR, msg, &ssh_sig) {
+            Ok(_) => Ok(()),
+            Err(_) => Err(Error::VerificationFailure),
+        }
     }
 }

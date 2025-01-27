@@ -3,17 +3,16 @@ use std::path::{Path, PathBuf};
 
 use serde_derive::Serialize;
 
-use crate::{
-    common::vec_hex_serializer,
-    hash::{hash_file, DVHashType},
-};
+use crate::serializer::hex_serializer;
+
+use crate::common::{hash_file, DVHashType};
 
 use crate::error::Error;
 
 #[derive(Debug, Serialize)]
 pub struct WalkerFile {
     pub path: PathBuf,
-    #[serde(serialize_with = "vec_hex_serializer")]
+    #[serde(serialize_with = "hex_serializer")]
     pub hash: Vec<u8>,
 }
 

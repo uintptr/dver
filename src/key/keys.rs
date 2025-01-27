@@ -2,11 +2,12 @@ use std::path::Path;
 
 use crate::error::{Error, Result};
 
-use super::ssh::ssh_sign::SshSigner;
+use super::ssh::{ssh_sign::SshSigner, ssh_verify::SshVerifier};
 
 #[derive(Debug)]
 pub enum DVKey {
     PrivateOpenSsh(SshSigner),
+    PublicOpenSsh(SshVerifier),
 }
 
 #[derive(Debug)]
@@ -31,13 +32,13 @@ fn get_key<P: AsRef<Path>>(path: P) -> Result<DVKey> {
     }
 
     if path.as_ref().ends_with("id_ed25519.pub") {
-        let key = SshSigner::new(path)?;
-        return Ok(DVKey::PrivateOpenSsh(key));
+        let key = SshVerifier::new(path)?;
+        return Ok(DVKey::PublicOpenSsh(key));
     }
 
     if path.as_ref().ends_with("id_rsa.pub") {
-        let key = SshSigner::new(path)?;
-        return Ok(DVKey::PrivateOpenSsh(key));
+        let key = SshVerifier::new(path)?;
+        return Ok(DVKey::PublicOpenSsh(key));
     }
 
     Err(Error::InputKeyFormatNotSupported)
@@ -52,14 +53,22 @@ impl DVPrivateKey {
     pub fn sign(self, data: &[u8]) -> Result<Vec<u8>> {
         match self.key {
             DVKey::PrivateOpenSsh(mut k) => k.sign(data),
+            _ => Err(Error::KeyInvalidType),
         }
     }
 }
 
 impl DVPublicKey {
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<DVPrivateKey> {
+    pub fn new<P: AsRef<Path>>(path: P) -> Result<DVPublicKey> {
         let key = get_key(path)?;
-        Ok(DVPrivateKey { key })
+        Ok(DVPublicKey { key })
+    }
+
+    pub fn verify(&self, msg: &[u8], signature: &[u8]) -> Result<()> {
+        match &self.key {
+            DVKey::PublicOpenSsh(k) => k.verify(msg, signature),
+            _ => Err(Error::KeyInvalidType),
+        }
     }
 }
 

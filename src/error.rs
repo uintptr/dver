@@ -45,7 +45,26 @@ pub enum Error {
     #[error(transparent)]
     Pem(#[from] PemError),
 
+    //
+    // Key
+    //
+    #[error("Invalid Key Type")]
+    KeyInvalidType,
+
+    //
+    //
+    //
+    #[error("Verification Failure")]
+    VerificationFailure,
+
+    //
+    // Base64
+    //
+    #[error(transparent)]
+    Base64Decode(#[from] base64::DecodeError),
+    //
     // ssh
+    //
     #[error("invalid message id {}", .0)]
     SShInvalidMessageId(u8),
     #[error("unable to connect to ssh-agent")]

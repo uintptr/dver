@@ -6,21 +6,25 @@ use std::{
     vec,
 };
 
-use crate::common::vec_hex_serializer;
+const CUR_SIG_FORMAT_VER: u8 = 1;
+
+use crate::{common::DEFAULT_SIGN_FILE_NAME, serializer::hex_serializer};
 
 use base64::{prelude::BASE64_STANDARD, Engine};
+use log::info;
 use serde_derive::Serialize;
 use sha2::{Digest, Sha256, Sha512};
 
+use crate::common::DVHashType;
 use crate::error::Error;
-use crate::hash::DVHashType;
 
 use super::file::WalkerFile;
 
 #[derive(Debug, Serialize)]
 pub struct WalkerDirectory {
+    version: u8,
     directory: PathBuf,
-    #[serde(serialize_with = "vec_hex_serializer")]
+    #[serde(serialize_with = "hex_serializer")]
     hash: Vec<u8>,
     files: Vec<WalkerFile>,
     directories: Vec<WalkerDirectory>,
@@ -60,6 +64,24 @@ impl WalkerDirectory {
         }
     }
 
+    fn ignore_file(&self, file_path: &PathBuf) -> bool {
+        if !file_path.is_file() {
+            return false;
+        }
+
+        match file_path.file_name() {
+            Some(basename) => {
+                if basename == DEFAULT_SIGN_FILE_NAME {
+                    info!("ignoring file={:?}", file_path);
+                    true
+                } else {
+                    false
+                }
+            }
+            None => false,
+        }
+    }
+
     fn new_with_root<P: AsRef<Path>, T: AsRef<Path>>(
         root: P,
         dir: T,
@@ -68,6 +90,7 @@ impl WalkerDirectory {
         let rel_name = dir.as_ref().strip_prefix(&root)?;
 
         let mut d = WalkerDirectory {
+            version: CUR_SIG_FORMAT_VER,
             directory: rel_name.into(),
             files: Vec::new(),
             directories: Vec::new(),
@@ -109,6 +132,11 @@ impl WalkerDirectory {
             }
             for entry in fs::read_dir(dir)? {
                 let entry = entry?.path();
+
+                if self.ignore_file(&entry) {
+                    continue;
+                }
+
                 if entry.is_file() {
                     let f = WalkerFile::new(root.as_ref(), entry, hash_type)?;
                     self.files.push(f);

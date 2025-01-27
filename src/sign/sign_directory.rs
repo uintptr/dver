@@ -4,16 +4,26 @@ use std::{
     fs::{self, canonicalize, File},
     io::Write,
     path::Path,
+    vec,
 };
 
 const CUR_SIG_FORMAT_VER: u32 = 1;
 
-use base64::{prelude::BASE64_STANDARD, Engine};
+use crate::{
+    common::hash_data,
+    serializer::{base64_deserializer, base64_serializer},
+};
+
+use base64::{
+    prelude::{BASE64_STANDARD, BASE64_STANDARD_NO_PAD},
+    Engine,
+};
+use log::{info, warn};
 use serde_derive::{Deserialize, Serialize};
 
 use crate::{
     common::{file_size_to_str, printkv, DEFAULT_SIGN_FILE_NAME},
-    hash::{hash_string, DVHashType},
+    common::{hash_string, DVHashType},
     key::keys::DVPrivateKey,
     walker::dir::WalkerDirectory,
 };
@@ -22,26 +32,20 @@ use crate::error::Result;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DVSignature {
-    version: u32,
-    directory_data: String,
-    signature: String,
+    data: String,
+    #[serde(
+        serialize_with = "base64_serializer",
+        deserialize_with = "base64_deserializer"
+    )]
+    pub signature: Vec<u8>,
 }
 
 impl DVSignature {
-    pub fn new<P: AsRef<Path>>(walker: &WalkerDirectory, private_key: P) -> Result<DVSignature> {
-        let directory_data = walker.encode()?;
-
-        let data_hash = hash_string(&directory_data, DVHashType::Sha512);
-
-        let mut signer = DVPrivateKey::new(private_key)?;
-        let signature = signer.sign(&data_hash)?;
-        let signature_b64 = BASE64_STANDARD.encode(signature);
-
-        Ok(DVSignature {
-            version: CUR_SIG_FORMAT_VER,
-            directory_data,
-            signature: signature_b64,
-        })
+    pub fn new() -> DVSignature {
+        DVSignature {
+            data: String::new(),
+            signature: vec![],
+        }
     }
 
     pub fn from_file<P: AsRef<Path>>(signature_file: P) -> Result<DVSignature> {
@@ -72,6 +76,24 @@ impl DVSignature {
 
         Ok(())
     }
+
+    pub fn with_data(&mut self, data: &str) {
+        self.data = data.to_string();
+    }
+
+    pub fn sign<P: AsRef<Path>>(&mut self, private_key: P) -> Result<()> {
+        let key = DVPrivateKey::new(private_key)?;
+
+        let data_hash = hash_string(&self.data, DVHashType::Sha512);
+
+        self.signature = key.sign(&data_hash)?;
+
+        info!("data size: {}", self.data.len());
+        info!("data hash: {}", hex::encode(&data_hash));
+        info!("data sign: {}", hex::encode(&self.signature));
+
+        Ok(())
+    }
 }
 
 pub fn sign_directory<P: AsRef<Path>>(
@@ -95,17 +117,19 @@ pub fn sign_directory<P: AsRef<Path>>(
     printkv("Signature File", out_file.display());
 
     if out_file.exists() {
-        fs::remove_file(out_file)?;
+        warn!("{:?} already exists", out_file);
     }
 
-    let d = WalkerDirectory::new(&directory, hash_type)?;
+    let walker = WalkerDirectory::new(&directory, hash_type)?;
 
-    let s = DVSignature::new(&d, private_key)?;
+    let mut s = DVSignature::new();
 
+    s.with_data(&walker.encode()?);
+    s.sign(private_key);
     s.to_file(out_file)?;
 
     let file_size = file_size_to_str(out_file).unwrap_or("".into());
-    printkv("Signature Size", file_size);
+    printkv("File Size", file_size);
 
     Ok(())
 }
