@@ -24,7 +24,7 @@ use crate::error::Result;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DVSignature {
-    data: String,
+    content: String,
     #[serde(
         serialize_with = "base64_serializer",
         deserialize_with = "base64_deserializer"
@@ -41,7 +41,7 @@ impl Default for DVSignature {
 impl DVSignature {
     pub fn new() -> DVSignature {
         DVSignature {
-            data: String::new(),
+            content: String::new(),
             signature: vec![],
         }
     }
@@ -51,15 +51,33 @@ impl DVSignature {
 
         let pem = pem::parse(b64_data)?;
 
-        let s: DVSignature = serde_json::from_slice(pem.contents())?;
+        // this doesn't feel right, but would it be better to let
+        // serde_json::from_slice() fail since we're not loading json data
+        //
+        // we'll revisit
+        //
+        let s = match pem.contents()[0] {
+            b'{' => {
+                let s: DVSignature = serde_json::from_slice(pem.contents())?;
+                s
+            }
+            _ => {
+                let mut s = DVSignature::default();
+                s.signature = pem.contents().to_vec();
+                s
+            }
+        };
 
         Ok(s)
     }
 
-    pub fn to_file<P: AsRef<Path>>(&self, file_path: P) -> Result<()> {
-        let json_string = serde_json::to_string(self)?;
+    pub fn to_file<P: AsRef<Path>>(&self, file_path: P, large_signature: bool) -> Result<()> {
+        let signature_data = match large_signature {
+            true => &serde_json::to_vec(self)?,
+            false => &self.signature,
+        };
 
-        let base64_data = BASE64_STANDARD.encode(json_string);
+        let base64_data = BASE64_STANDARD.encode(signature_data);
 
         let mut fd = File::create(file_path)?;
 
@@ -75,18 +93,18 @@ impl DVSignature {
         Ok(())
     }
 
-    pub fn with_data(&mut self, data: &str) {
-        self.data = data.to_string();
+    pub fn with_content(&mut self, data: &str) {
+        self.content = data.to_string();
     }
 
     pub fn sign<P: AsRef<Path>>(&mut self, private_key: P) -> Result<()> {
         let mut key = load_private_key(private_key)?;
 
-        let data_hash = hash_string(&self.data, DVHashType::Sha512);
+        let data_hash = hash_string(&self.content, DVHashType::Sha512);
 
         self.signature = key.sign(&data_hash)?;
 
-        info!("data size: {}", self.data.len());
+        info!("data size: {}", self.content.len());
         info!("data hash: {}", hex::encode(&data_hash));
         info!("data sign: {}", hex::encode(&self.signature));
 
@@ -99,6 +117,7 @@ pub fn sign_directory<P: AsRef<Path>>(
     private_key: P,
     hash_type: DVHashType,
     output_sig_file: Option<P>,
+    signature_content: bool,
 ) -> Result<()> {
     let directory = canonicalize(directory)?;
     let private_key = canonicalize(private_key)?;
@@ -122,11 +141,11 @@ pub fn sign_directory<P: AsRef<Path>>(
 
     let mut s = DVSignature::new();
 
-    s.with_data(&walker.encode()?);
+    s.with_content(&walker.encode()?);
     s.sign(private_key)?;
-    s.to_file(out_file)?;
+    s.to_file(out_file, signature_content)?;
 
-    let file_size = file_size_to_str(out_file).unwrap_or("".into());
+    let file_size = file_size_to_str(out_file)?;
     printkv("File Size", file_size);
 
     Ok(())

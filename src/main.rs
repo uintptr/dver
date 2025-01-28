@@ -23,6 +23,9 @@ struct SignOpt {
     /// Verbose
     #[structopt(long, short)]
     verbose: bool,
+    /// Include context in the signature to help troubleshooting
+    #[structopt(long)]
+    signature_content: bool,
 }
 
 #[derive(Debug, StructOpt)]
@@ -71,6 +74,7 @@ fn main() -> Result<()> {
             opt.private_key,
             opt.hash_type,
             opt.signature_file,
+            opt.signature_content,
         ),
         DVCommand::Verify(opt) => verify_directory(
             opt.directory,
