@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::{
-    key::keys::{load_private_key, PrivateKeyTrait},
+    key::keys::load_private_key,
     serializer::{base64_deserializer, base64_serializer},
 };
 
@@ -114,13 +114,12 @@ impl DVSignature {
 
 pub fn sign_directory<P: AsRef<Path>>(
     directory: P,
-    private_key: P,
+    private_key: String,
     hash_type: DVHashType,
     output_sig_file: Option<P>,
     signature_content: bool,
 ) -> Result<()> {
     let directory = canonicalize(directory)?;
-    let private_key = canonicalize(private_key)?;
 
     let out_file = match &output_sig_file {
         Some(v) => v.as_ref(),
@@ -129,7 +128,7 @@ pub fn sign_directory<P: AsRef<Path>>(
 
     println!("Signing:");
     printkv("Directory", directory.display());
-    printkv("Private Key", private_key.display());
+    printkv("Private Key", &private_key);
     printkv("Hash Type", hash_type);
     printkv("Signature File", out_file.display());
 

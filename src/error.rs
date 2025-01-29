@@ -1,4 +1,4 @@
-use std::{path::StripPrefixError, time::SystemTimeError};
+use std::{path::StripPrefixError, str::Utf8Error, string::FromUtf8Error, time::SystemTimeError};
 
 use pem::PemError;
 use thiserror::Error;
@@ -40,10 +40,23 @@ pub enum Error {
     #[error("{}", .0)]
     SshAgentUnknownMessage(String),
     #[error(transparent)]
-    Utf8(#[from] std::str::Utf8Error),
-
-    #[error(transparent)]
     Pem(#[from] PemError),
+
+    //
+    // String
+    //
+    #[error(transparent)]
+    Utf8(#[from] Utf8Error),
+    #[error(transparent)]
+    Utf8Error(#[from] FromUtf8Error),
+
+    //
+    // Exe
+    //
+    #[error(transparent)]
+    NotInPath(#[from] which::Error),
+    #[error("{}", .0)]
+    ExecFailure(String),
 
     //
     // Key

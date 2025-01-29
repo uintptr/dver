@@ -5,7 +5,7 @@ use log::info;
 use crate::{
     common::{hash_string, printkv, DVHashType, DEFAULT_SIGN_FILE_NAME},
     error::Result,
-    key::keys::{load_public_key, PublicKeyTrait},
+    key::keys::load_public_key,
     sign::sign_directory::DVSignature,
     walker::dir::WalkerDirectory,
 };

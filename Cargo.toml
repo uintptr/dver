@@ -9,14 +9,17 @@ hex = "0.4.3"
 log = "0.4.25"
 pem = "3.0.4"
 pretty-hex = "0.4.1"
+rpassword = "7.3.1"
 serde = "1.0.217"
 serde_derive = "1.0.217"
 serde_json = "1.0.137"
 sha2 = "0.10.8"
 ssh-key = { version = "0.6.7", features = ["ed25519", "rsa"] }
 structopt = "0.3.26"
+tempfile = "3.15.0"
 textwrap = "0.16.1"
 thiserror = "2.0.11"
+which = "7.0.1"
 
 
 [profile.release]

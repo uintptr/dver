@@ -6,10 +6,7 @@ use std::{
 use log::warn;
 use ssh_key::{Cipher, HashAlg, PrivateKey};
 
-use crate::{
-    error::{Error, Result},
-    key::keys::PrivateKeyTrait,
-};
+use crate::error::{Error, Result};
 
 use super::ssh_agent::SshAgentClient;
 
@@ -18,15 +15,6 @@ pub struct SshSigner {
     key_file: PathBuf,
     key: PrivateKey,
     agent: Option<SshAgentClient>,
-}
-
-impl PrivateKeyTrait for SshSigner {
-    fn sign(&mut self, data: &[u8]) -> Result<Vec<u8>> {
-        match self.key.cipher().is_none() {
-            true => self.sign_with_key(data),
-            false => self.sign_with_agent(data),
-        }
-    }
 }
 
 impl SshSigner {
@@ -51,6 +39,13 @@ impl SshSigner {
             key,
             agent,
         })
+    }
+
+    pub fn sign(&mut self, data: &[u8]) -> Result<Vec<u8>> {
+        match self.key.cipher().is_none() {
+            true => self.sign_with_key(data),
+            false => self.sign_with_agent(data),
+        }
     }
 
     fn sign_with_agent(&mut self, data: &[u8]) -> Result<Vec<u8>> {

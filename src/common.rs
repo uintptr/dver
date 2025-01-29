@@ -1,9 +1,11 @@
 use core::fmt;
 use std::{
+    env,
     fmt::Display,
     fs::{self, File},
     io::{BufReader, Read},
     path::Path,
+    process::Command,
 };
 
 use sha2::{Digest, Sha256, Sha512};
@@ -126,4 +128,64 @@ pub fn hash_data(data: &[u8], hash_type: DVHashType) -> Vec<u8> {
 
 pub fn hash_string(data: &str, hash_type: DVHashType) -> Vec<u8> {
     hash_data(data.as_bytes(), hash_type)
+}
+
+pub struct DvCommand {
+    pub ret: i32,
+    pub stdout: Vec<u8>,
+    pub stderr: Vec<u8>,
+}
+
+impl DvCommand {
+    pub fn run(program: &str, args: &str) -> Result<DvCommand> {
+        let cwd = env::current_dir()?;
+        DvCommand::run_command(program, args, &cwd)
+    }
+
+    fn run_command<P: AsRef<Path>>(program: &str, args: &str, cwd: P) -> Result<DvCommand> {
+        let ret = Command::new(program).arg(args).current_dir(cwd).output()?;
+
+        Ok(DvCommand {
+            ret: ret.status.code().unwrap_or(-1),
+            stdout: ret.stdout,
+            stderr: ret.stderr,
+        })
+    }
+
+    pub fn stdout_text(&self) -> Result<String> {
+        let out_str = String::from_utf8_lossy(&self.stdout);
+        Ok(out_str.into())
+    }
+
+    pub fn stderr_text(&self) -> Result<String> {
+        let out_str = String::from_utf8_lossy(&self.stderr);
+        Ok(out_str.into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use log::info;
+
+    use crate::{common::DvCommand, logging::init_logging};
+
+    #[test]
+    fn test_cmd() {
+        init_logging().unwrap();
+
+        let res = DvCommand::run("/bleh", "");
+        assert!(res.is_err());
+
+        let res = DvCommand::run("/usr/bin/ping", "");
+        assert!(res.is_ok());
+
+        if let Ok(cmd) = res {
+            assert_ne!(cmd.ret, 0);
+
+            info!("stdout: {:?}", cmd.stdout);
+            info!("stdout: {}", cmd.stdout_text().unwrap());
+            info!("stderr: {:?}", cmd.stderr);
+            info!("stderr: {:?}", cmd.stderr_text().unwrap());
+        }
+    }
 }
