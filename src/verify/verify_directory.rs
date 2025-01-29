@@ -12,12 +12,11 @@ use crate::{
 
 pub fn verify_directory<P: AsRef<Path>>(
     directory: P,
-    public_key: P,
+    public_key: String,
     hash_type: DVHashType,
     signature_file: Option<P>,
 ) -> Result<()> {
     let directory = canonicalize(directory)?;
-    let public_key = canonicalize(public_key)?;
 
     let in_file = match &signature_file {
         Some(v) => v.as_ref(),
@@ -28,7 +27,7 @@ pub fn verify_directory<P: AsRef<Path>>(
 
     println!("Verifying:");
     printkv("Directory", directory.display());
-    printkv("Public Key", public_key.display());
+    printkv("Public Key", &public_key);
     printkv("Signature File", in_file.display());
     printkv("Hash Type", hash_type);
 

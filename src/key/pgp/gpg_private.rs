@@ -13,7 +13,7 @@ use which::which;
 
 use crate::{
     error::{Error, Result},
-    key,
+    key::{self, pgp::pgp_common::log_command_failure},
 };
 
 #[derive(Debug)]
@@ -21,19 +21,10 @@ pub struct GgpSigner {
     key_id: Option<String>,
 }
 
-fn log_command_failure(output: &Output) {
-    if !output.stdout.is_empty() {
-        error!("{}", String::from_utf8_lossy(&output.stdout))
-    }
-
-    if !output.stderr.is_empty() {
-        error!("{}", String::from_utf8_lossy(&output.stderr))
-    }
-}
-
-fn run_pgp_with_pass(
+fn run_pgp(
     gpg_exe: &PathBuf,
     key_id: &Option<String>,
+    ask_pass: bool,
     in_file: &PathBuf,
     out_file: &PathBuf,
 ) -> Result<()> {
@@ -48,12 +39,16 @@ fn run_pgp_with_pass(
         fs::remove_file(out_file)?;
     }
 
+    args.push("--detach-sign");
     args.push("--batch");
     args.push("--pinentry-mode");
     args.push("loopback");
     args.push("--no-tty");
-    args.push("--passphrase-fd");
-    args.push("0");
+
+    if ask_pass {
+        args.push("--passphrase-fd");
+        args.push("0");
+    }
     args.push("--output");
     args.push(out_file.to_str().unwrap_or(""));
     args.push(in_file.to_str().unwrap_or(""));
@@ -66,12 +61,13 @@ fn run_pgp_with_pass(
         .stdin(Stdio::piped())
         .spawn()?;
 
-    if let Some(mut stdin) = child.stdin.take() {
-        let password = rpassword::prompt_password("gpg passphrase: ")?;
-        stdin.write(password.as_bytes())?;
+    if ask_pass {
+        if let Some(mut stdin) = child.stdin.take() {
+            let password = rpassword::prompt_password("gpg passphrase: ")?;
+            stdin.write(password.as_bytes())?;
+            info!("password sent");
+        }
     }
-
-    info!("password sent");
 
     let output = child.wait_with_output()?;
 
@@ -79,46 +75,6 @@ fn run_pgp_with_pass(
         Some(s) => s,
         None => 1,
     };
-
-    match exit_code {
-        0 => Ok(()),
-        _ => {
-            log_command_failure(&output);
-            let msg = format!("{:?} returned {exit_code}", gpg_exe.display());
-            Err(Error::ExecFailure(msg))
-        }
-    }
-}
-
-fn run_pgp(
-    gpg_exe: &PathBuf,
-    key_id: &Option<String>,
-    in_file: &PathBuf,
-    out_file: &PathBuf,
-) -> Result<()> {
-    let mut args = vec!["--sign"];
-
-    if let Some(key) = &key_id {
-        args.push("--default-key");
-        args.push(&key);
-    }
-
-    args.push("--batch");
-    args.push("--pinentry-mode");
-    args.push("loopback");
-    args.push("--no-tty");
-    args.push("--output");
-    args.push(out_file.to_str().unwrap_or(""));
-    args.push(in_file.to_str().unwrap_or(""));
-
-    let output = Command::new(&gpg_exe).args(args).output()?;
-
-    let exit_code = match output.status.code() {
-        Some(s) => s,
-        None => 1,
-    };
-
-    info!("{:?} returned {exit_code}", gpg_exe.display());
 
     match exit_code {
         0 => Ok(()),
@@ -154,8 +110,8 @@ impl GgpSigner {
         //
         // trying without a password first in case the agent is running
         //
-        if run_pgp(&gpg_exe, &self.key_id, &in_file, &out_file).is_err() {
-            run_pgp_with_pass(&gpg_exe, &self.key_id, &in_file, &out_file)?;
+        if run_pgp(&gpg_exe, &self.key_id, false, &in_file, &out_file).is_err() {
+            run_pgp(&gpg_exe, &self.key_id, true, &in_file, &out_file)?;
         }
 
         let sig_data = fs::read(&out_file)?;
