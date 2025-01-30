@@ -1,6 +1,8 @@
 use dver::{
-    common::DVHashType, logging::init_logging, sign::sign_directory::sign_directory,
-    verify::verify_directory::verify_directory,
+    common::DVHashType,
+    logging::init_logging,
+    sign::sign_dir::{sign_directory, DVSignType},
+    verify::verify_dir::verify_directory,
 };
 use structopt::StructOpt;
 
@@ -24,8 +26,8 @@ struct SignOpt {
     #[structopt(long, short)]
     verbose: bool,
     /// Include context in the signature to help troubleshooting
-    #[structopt(long)]
-    signature_content: bool,
+    #[structopt(long, default_value="complete", possible_values = &["short", "complete"])]
+    signature_type: DVSignType,
 }
 
 #[derive(Debug, StructOpt)]
@@ -74,7 +76,7 @@ fn main() -> Result<()> {
             opt.private_key,
             opt.hash_type,
             opt.signature_file,
-            opt.signature_content,
+            opt.signature_type,
         ),
         DVCommand::Verify(opt) => verify_directory(
             opt.directory,

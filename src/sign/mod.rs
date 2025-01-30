@@ -1,1 +1,1 @@
-pub mod sign_directory;
+pub mod sign_dir;

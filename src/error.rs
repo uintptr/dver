@@ -21,6 +21,8 @@ pub enum Error {
     InvalidRootDirectory,
     #[error("Unknown Hash Type")]
     UnknownHashType,
+    #[error("Unknown Signature Type")]
+    UnknownSignatureType,
     #[error("Logging Init Failure")]
     LoggingInitFailure,
     #[error("Unexpected input {:?}", .0)]

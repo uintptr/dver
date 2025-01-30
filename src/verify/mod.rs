@@ -1,1 +1,1 @@
-pub mod verify_directory;
+pub mod verify_dir;

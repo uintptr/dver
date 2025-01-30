@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{
     fs::{self, canonicalize, File},
     io::Write,
@@ -7,6 +8,7 @@ use std::{
 
 use crate::{
     directory::walker::Walker,
+    error::Error,
     key::keys::load_private_key,
     serializer::{base64_deserializer, base64_serializer},
 };
@@ -19,6 +21,33 @@ use crate::{
     common::{file_size_to_str, printkv, DEFAULT_SIGN_FILE_NAME},
     common::{hash_string, DVHashType},
 };
+
+#[derive(Debug)]
+pub enum DVSignType {
+    Short = 0,
+    Complete = 1,
+}
+
+impl std::str::FromStr for DVSignType {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self> {
+        match s.to_lowercase().as_str() {
+            "short" => Ok(DVSignType::Short),
+            "complete" => Ok(DVSignType::Complete),
+            _ => Err(Error::UnknownSignatureType),
+        }
+    }
+}
+
+impl fmt::Display for DVSignType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            DVSignType::Short => write!(f, "short"),
+            DVSignType::Complete => write!(f, "complete"),
+        }
+    }
+}
 
 use crate::error::Result;
 
@@ -73,10 +102,10 @@ impl DVSignature {
         Ok(s)
     }
 
-    pub fn to_file<P: AsRef<Path>>(&self, file_path: P, large_signature: bool) -> Result<()> {
-        let signature_data = match large_signature {
-            true => &serde_json::to_vec(self)?,
-            false => &self.signature,
+    pub fn to_file<P: AsRef<Path>>(&self, file_path: P, signature_type: DVSignType) -> Result<()> {
+        let signature_data = match signature_type {
+            DVSignType::Complete => &serde_json::to_vec(self)?,
+            DVSignType::Short => &self.signature,
         };
 
         let base64_data = BASE64_STANDARD.encode(signature_data);
@@ -119,7 +148,7 @@ pub fn sign_directory<P: AsRef<Path>>(
     private_key: String,
     hash_type: DVHashType,
     output_sig_file: Option<P>,
-    signature_content: bool,
+    signature_type: DVSignType,
 ) -> Result<()> {
     let directory = canonicalize(directory)?;
 
@@ -133,6 +162,7 @@ pub fn sign_directory<P: AsRef<Path>>(
     printkv("Private Key", &private_key);
     printkv("Hash Type", hash_type);
     printkv("Signature File", out_file.display());
+    printkv("Signature Type", &signature_type);
 
     if out_file.exists() {
         warn!("{:?} already exists", out_file);
@@ -144,7 +174,7 @@ pub fn sign_directory<P: AsRef<Path>>(
 
     s.with_content(&walker.encode()?);
     s.sign(private_key)?;
-    s.to_file(out_file, signature_content)?;
+    s.to_file(out_file, signature_type)?;
 
     let file_size = file_size_to_str(out_file)?;
     printkv("File Size", file_size);

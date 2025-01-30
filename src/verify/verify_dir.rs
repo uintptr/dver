@@ -7,7 +7,7 @@ use crate::{
     directory::walker::Walker,
     error::Result,
     key::keys::load_public_key,
-    sign::sign_directory::DVSignature,
+    sign::sign_dir::DVSignature,
 };
 
 pub fn verify_directory<P: AsRef<Path>>(
