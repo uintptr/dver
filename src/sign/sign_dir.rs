@@ -8,9 +8,9 @@ use std::{
 
 use crate::{
     common::{
-        constants::DEFAULT_SIGN_FILE_NAME,
         fmt::{file_size_to_str, printkv},
         hash::{hash_string, DVHashType},
+        r#const::DEFAULT_SIGN_FILE_NAME,
     },
     directory::walker::Walker,
     error::Error,

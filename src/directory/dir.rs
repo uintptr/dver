@@ -7,7 +7,7 @@ use std::{
 };
 
 use crate::common::{
-    constants::DEFAULT_SIGN_FILE_NAME, hash::DVHashType, serializer::hex_serializer,
+    hash::DVHashType, r#const::DEFAULT_SIGN_FILE_NAME, serializer::hex_serializer,
 };
 
 use log::info;

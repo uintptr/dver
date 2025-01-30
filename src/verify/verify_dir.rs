@@ -4,9 +4,9 @@ use log::info;
 
 use crate::{
     common::{
-        constants::DEFAULT_SIGN_FILE_NAME,
         fmt::printkv,
         hash::{hash_string, DVHashType},
+        r#const::DEFAULT_SIGN_FILE_NAME,
     },
     directory::walker::Walker,
     error::Result,

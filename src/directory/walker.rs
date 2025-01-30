@@ -24,7 +24,6 @@ impl Walker {
 
     pub fn encode(&self) -> Result<String> {
         let json_string = serde_json::to_string(self)?;
-        let encoded = BASE64_STANDARD.encode(json_string);
-        Ok(encoded)
+        Ok(BASE64_STANDARD.encode(json_string))
     }
 }
