@@ -6,11 +6,8 @@ use std::{
     vec,
 };
 
-const CUR_SIG_FORMAT_VER: u8 = 1;
-
 use crate::{common::DEFAULT_SIGN_FILE_NAME, serializer::hex_serializer};
 
-use base64::{prelude::BASE64_STANDARD, Engine};
 use log::info;
 use serde_derive::Serialize;
 use sha2::{Digest, Sha256, Sha512};
@@ -22,7 +19,6 @@ use super::file::WalkerFile;
 
 #[derive(Debug, Serialize)]
 pub struct WalkerDirectory {
-    version: u8,
     directory: PathBuf,
     #[serde(serialize_with = "hex_serializer")]
     hash: Vec<u8>,
@@ -90,7 +86,6 @@ impl WalkerDirectory {
         let rel_name = dir.as_ref().strip_prefix(&root)?;
 
         let mut d = WalkerDirectory {
-            version: CUR_SIG_FORMAT_VER,
             directory: rel_name.into(),
             files: Vec::new(),
             directories: Vec::new(),
@@ -105,10 +100,6 @@ impl WalkerDirectory {
         }?;
 
         Ok(d)
-    }
-
-    pub fn hash_str(&self) -> String {
-        hex::encode(&self.hash)
     }
 
     fn parse<P: AsRef<Path>, T: AsRef<Path>>(
@@ -163,11 +154,6 @@ impl WalkerDirectory {
         let digest = hash.finalize();
 
         Ok(digest.to_vec())
-    }
-
-    pub fn encode(&self) -> Result<String, Error> {
-        let json_string = serde_json::to_string(self)?;
-        Ok(BASE64_STANDARD.encode(json_string))
     }
 }
 

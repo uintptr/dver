@@ -6,6 +6,7 @@ use std::{
 };
 
 use crate::{
+    directory::walker::Walker,
     key::keys::load_private_key,
     serializer::{base64_deserializer, base64_serializer},
 };
@@ -17,7 +18,6 @@ use serde_derive::{Deserialize, Serialize};
 use crate::{
     common::{file_size_to_str, printkv, DEFAULT_SIGN_FILE_NAME},
     common::{hash_string, DVHashType},
-    walker::dir::WalkerDirectory,
 };
 
 use crate::error::Result;
@@ -62,9 +62,11 @@ impl DVSignature {
                 s
             }
             _ => {
-                let mut s = DVSignature::default();
-                s.signature = pem.contents().to_vec();
-                s
+                let signature = pem.contents().to_vec();
+                DVSignature {
+                    content: String::new(),
+                    signature,
+                }
             }
         };
 
@@ -136,7 +138,7 @@ pub fn sign_directory<P: AsRef<Path>>(
         warn!("{:?} already exists", out_file);
     }
 
-    let walker = WalkerDirectory::new(&directory, hash_type)?;
+    let walker = Walker::new(&directory, hash_type)?;
 
     let mut s = DVSignature::new();
 

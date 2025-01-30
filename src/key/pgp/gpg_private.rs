@@ -22,17 +22,17 @@ pub struct GgpSigner {
 }
 
 fn run_pgp(
-    gpg_exe: &PathBuf,
+    gpg_exe: &Path,
     key_id: &Option<String>,
     ask_pass: bool,
-    in_file: &PathBuf,
-    out_file: &PathBuf,
+    in_file: &Path,
+    out_file: &Path,
 ) -> Result<()> {
     let mut args = vec!["--sign"];
 
     if let Some(key) = &key_id {
         args.push("--default-key");
-        args.push(&key);
+        args.push(key);
     }
 
     if out_file.exists() {
@@ -64,17 +64,14 @@ fn run_pgp(
     if ask_pass {
         if let Some(mut stdin) = child.stdin.take() {
             let password = rpassword::prompt_password("gpg passphrase: ")?;
-            stdin.write(password.as_bytes())?;
+            stdin.write_all(password.as_bytes())?;
             info!("password sent");
         }
     }
 
     let output = child.wait_with_output()?;
 
-    let exit_code = match output.status.code() {
-        Some(s) => s,
-        None => 1,
-    };
+    let exit_code = output.status.code().unwrap_or(1);
 
     match exit_code {
         0 => Ok(()),

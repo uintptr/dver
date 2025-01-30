@@ -5,4 +5,4 @@ pub mod logging;
 pub mod serializer;
 pub mod sign;
 pub mod verify;
-pub mod walker;
+pub mod directory;

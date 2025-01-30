@@ -1,8 +1,4 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use std::{fs, path::Path, process::Command};
 
 use tempfile::Builder;
 use which::which;
@@ -18,17 +14,12 @@ pub struct GpgVerifier {
     key_id: Option<String>,
 }
 
-fn gpg_verify(
-    gpg_exe: &PathBuf,
-    key_id: &Option<String>,
-    msg: &PathBuf,
-    sig: &PathBuf,
-) -> Result<()> {
+fn gpg_verify(gpg_exe: &Path, key_id: &Option<String>, msg: &Path, sig: &Path) -> Result<()> {
     let mut args = vec![];
 
     if let Some(key) = &key_id {
         args.push("--default-key");
-        args.push(&key);
+        args.push(key);
     }
 
     args.push("--batch");
@@ -44,10 +35,7 @@ fn gpg_verify(
 
     let output = Command::new(gpg_exe).args(args).output()?;
 
-    let exit_code = match output.status.code() {
-        Some(s) => s,
-        None => 1,
-    };
+    let exit_code = output.status.code().unwrap_or(1);
 
     match exit_code {
         0 => Ok(()),

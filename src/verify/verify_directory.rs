@@ -4,10 +4,10 @@ use log::info;
 
 use crate::{
     common::{hash_string, printkv, DVHashType, DEFAULT_SIGN_FILE_NAME},
+    directory::walker::Walker,
     error::Result,
     key::keys::load_public_key,
     sign::sign_directory::DVSignature,
-    walker::dir::WalkerDirectory,
 };
 
 pub fn verify_directory<P: AsRef<Path>>(
@@ -33,7 +33,7 @@ pub fn verify_directory<P: AsRef<Path>>(
 
     let s = DVSignature::from_file(&in_file)?;
 
-    let walker = WalkerDirectory::new(&directory, hash_type)?;
+    let walker = Walker::new(&directory, hash_type)?;
 
     let dir_data = walker.encode()?;
     let dir_data_hash = hash_string(&dir_data, DVHashType::Sha512);
