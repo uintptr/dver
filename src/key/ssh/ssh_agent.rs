@@ -15,7 +15,7 @@ use serde_derive::Serialize;
 use ssh_key::PrivateKey;
 
 use crate::{
-    common::{hash_data, DVHashType},
+    common::hash::{hash_data, DVHashType},
     error::{Error, Result},
 };
 

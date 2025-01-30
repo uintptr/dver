@@ -3,7 +3,11 @@ use std::{fs::canonicalize, path::Path};
 use log::info;
 
 use crate::{
-    common::{hash_string, printkv, DVHashType, DEFAULT_SIGN_FILE_NAME},
+    common::{
+        constants::DEFAULT_SIGN_FILE_NAME,
+        fmt::printkv,
+        hash::{hash_string, DVHashType},
+    },
     directory::walker::Walker,
     error::Result,
     key::keys::load_public_key,

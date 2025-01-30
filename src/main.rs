@@ -1,5 +1,5 @@
 use dver::{
-    common::DVHashType,
+    common::hash::DVHashType,
     logging::init_logging,
     sign::sign_dir::{sign_directory, DVSignType},
     verify::verify_dir::verify_directory,

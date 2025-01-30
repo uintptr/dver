@@ -3,9 +3,8 @@ use std::path::{Path, PathBuf};
 
 use serde_derive::Serialize;
 
-use crate::serializer::hex_serializer;
-
-use crate::common::{hash_file, DVHashType};
+use crate::common::hash::{hash_file, DVHashType};
+use crate::common::serializer::hex_serializer;
 
 use crate::error::Error;
 

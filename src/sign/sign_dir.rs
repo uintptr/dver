@@ -7,20 +7,21 @@ use std::{
 };
 
 use crate::{
+    common::{
+        constants::DEFAULT_SIGN_FILE_NAME,
+        fmt::{file_size_to_str, printkv},
+        hash::{hash_string, DVHashType},
+    },
     directory::walker::Walker,
     error::Error,
     key::keys::load_private_key,
-    serializer::{base64_deserializer, base64_serializer},
 };
+
+use crate::common::serializer::{base64_deserializer, base64_serializer};
 
 use base64::{prelude::BASE64_STANDARD, Engine};
 use log::{info, warn};
 use serde_derive::{Deserialize, Serialize};
-
-use crate::{
-    common::{file_size_to_str, printkv, DEFAULT_SIGN_FILE_NAME},
-    common::{hash_string, DVHashType},
-};
 
 #[derive(Debug)]
 pub enum DVSignType {

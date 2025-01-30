@@ -6,13 +6,14 @@ use std::{
     vec,
 };
 
-use crate::{common::DEFAULT_SIGN_FILE_NAME, serializer::hex_serializer};
+use crate::common::{
+    constants::DEFAULT_SIGN_FILE_NAME, hash::DVHashType, serializer::hex_serializer,
+};
 
 use log::info;
 use serde_derive::Serialize;
 use sha2::{Digest, Sha256, Sha512};
 
-use crate::common::DVHashType;
 use crate::error::Error;
 
 use super::file::WalkerFile;

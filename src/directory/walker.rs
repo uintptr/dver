@@ -3,7 +3,7 @@ use std::path::Path;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use serde_derive::Serialize;
 
-use crate::{common::DVHashType, error::Result};
+use crate::{common::hash::DVHashType, error::Result};
 
 use super::dir::WalkerDirectory;
 const CUR_SIG_FORMAT_VER: u8 = 1;
