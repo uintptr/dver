@@ -19,7 +19,9 @@ pub struct SshSigner {
 
 impl SshSigner {
     pub fn new<P: AsRef<Path>>(private_key: P) -> Result<SshSigner> {
-        let encoded_key = fs::read_to_string(&private_key)?;
+        let pk = private_key.as_ref();
+
+        let encoded_key = fs::read_to_string(&pk)?;
 
         let key = PrivateKey::from_openssh(encoded_key)?;
 
@@ -35,7 +37,7 @@ impl SshSigner {
         };
 
         Ok(SshSigner {
-            key_file: private_key.as_ref().to_path_buf(),
+            key_file: pk.into(),
             key,
             agent,
         })

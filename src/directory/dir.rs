@@ -161,21 +161,18 @@ impl WalkerDirectory {
 #[cfg(test)]
 mod tests {
 
-    use crate::logging::init_logging;
-
     use super::*;
 
     #[test]
     fn walk_tmp() {
-        init_logging().unwrap();
+        let tmp_dir = tempfile::tempdir().unwrap().into_path();
 
-        let res = WalkerDirectory::new("/home/joe/tmp/rtl-sdr", DVHashType::Sha256);
-        assert!(res.is_ok());
+        let tmp_dir_1_2 = tmp_dir.join("1").join("2");
+        let tmp_dir_3_4 = tmp_dir.join("3").join("4");
 
-        if let Ok(d) = res {
-            let json_data = serde_json::to_string_pretty(&d).unwrap();
+        fs::create_dir_all(tmp_dir_1_2).unwrap();
+        fs::create_dir_all(tmp_dir_3_4).unwrap();
 
-            fs::write("/tmp/bleh", json_data).unwrap();
-        }
+        WalkerDirectory::new(tmp_dir, DVHashType::Sha256).unwrap();
     }
 }

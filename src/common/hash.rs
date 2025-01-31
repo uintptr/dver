@@ -89,3 +89,20 @@ pub fn hash_data(data: &[u8], hash_type: DVHashType) -> Vec<u8> {
 pub fn hash_string(data: &str, hash_type: DVHashType) -> Vec<u8> {
     hash_data(data.as_bytes(), hash_type)
 }
+
+#[cfg(test)]
+mod tests {
+
+    use super::hash_file;
+    use crate::common::hash::{hash_data, hash_string};
+
+    #[test]
+    fn test_hash() {
+        let res = hash_file("/path/to/bleh", super::DVHashType::Sha256);
+        assert!(res.is_err());
+
+        let res_str = hash_string(&String::new(), super::DVHashType::Sha256);
+        let res_data = hash_data(&vec![], super::DVHashType::Sha256);
+        assert_eq!(res_str, res_data);
+    }
+}

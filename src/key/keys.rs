@@ -106,18 +106,21 @@ impl DvVerifier {
 #[cfg(test)]
 mod tests {
 
-    use crate::logging::init_logging;
+    use log::warn;
 
     use super::*;
 
     #[test]
-    fn test_example() {
-        init_logging().unwrap();
-
+    fn keys() {
         let home = home::home_dir().unwrap();
 
         let ssh_key = home.join(".ssh").join("id_ed25519");
 
-        load_private_key(ssh_key).unwrap();
+        if ssh_key.exists() {
+            let res = load_private_key(ssh_key);
+            assert!(res.is_ok());
+        } else {
+            warn!("{} doesn't exist", ssh_key.display())
+        }
     }
 }

@@ -273,26 +273,28 @@ impl SshAgentClient {
 mod tests {
 
     use home::home_dir;
-
-    use crate::logging::init_logging;
+    use log::warn;
 
     use super::*;
 
     #[test]
     fn test_ssh_sign() {
-        init_logging().unwrap();
 
         let home = home_dir().unwrap();
 
         let pkey_file = Path::new(&home).join(".ssh").join("id_ed25519");
 
-        let mut client = SshAgentClient::new().unwrap();
+        // it's possible the agent isn't running
+        match SshAgentClient::new() {
+            Ok(mut client) => {
+                let ident = client.find_identity(&pkey_file).unwrap();
 
-        let ident = client.find_identity(&pkey_file).unwrap();
+                let message = b"Hello, World!";
+                let signature = client.sign(&ident, message).unwrap();
 
-        let message = b"Hello, World!";
-        let signature = client.sign(&ident, message).unwrap();
-
-        info!("{:?}", hex::encode(signature));
+                info!("{:?}", hex::encode(signature));
+            }
+            Err(e) => warn!("Error: {e}"),
+        }
     }
 }
