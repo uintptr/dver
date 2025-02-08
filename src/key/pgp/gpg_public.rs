@@ -7,7 +7,7 @@ use log::info;
 
 use crate::{
     error::{Error, Result},
-    key::pgp::pgp_common::log_command_failure,
+    key::{keys::Verifier, pgp::pgp_common::log_command_failure},
 };
 
 pub struct GpgPublic {
@@ -47,18 +47,8 @@ fn gpg_verify(gpg_exe: &Path, key_id: &Option<String>, msg: &Path, sig: &Path) -
     }
 }
 
-impl GpgPublic {
-    pub fn new_with_key(private_key_id: &str) -> GpgPublic {
-        GpgPublic {
-            key_id: Some(private_key_id.to_string()),
-        }
-    }
-
-    pub fn new() -> GpgPublic {
-        GpgPublic { key_id: None }
-    }
-
-    pub fn verify(&self, msg: &[u8], signature: &[u8]) -> Result<()> {
+impl Verifier for GpgPublic {
+    fn verify(&self, msg: &[u8], signature: &[u8]) -> Result<()> {
         let tmp_dir = Builder::new().prefix("dver_gpg_").tempdir()?;
 
         let msg_file = Path::new(tmp_dir.path()).join("msg.bin");
@@ -70,5 +60,17 @@ impl GpgPublic {
         let gpg_exe = which("gpg")?;
 
         gpg_verify(&gpg_exe, &self.key_id, &msg_file, &sig_file)
+    }
+}
+
+impl GpgPublic {
+    pub fn new_with_key(private_key_id: &str) -> GpgPublic {
+        GpgPublic {
+            key_id: Some(private_key_id.to_string()),
+        }
+    }
+
+    pub fn new() -> GpgPublic {
+        GpgPublic { key_id: None }
     }
 }
