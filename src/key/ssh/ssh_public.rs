@@ -7,17 +7,17 @@ use crate::error::{Error, Result};
 use super::ssh_agent::DV_NS_STR;
 
 #[derive(Debug)]
-pub struct SshVerifier {
+pub struct SshPublic {
     pub pub_key: PublicKey,
 }
 
-impl SshVerifier {
-    pub fn new<P: AsRef<Path>>(public_key: P) -> Result<SshVerifier> {
+impl SshPublic {
+    pub fn new<P: AsRef<Path>>(public_key: P) -> Result<SshPublic> {
         let pub_data = fs::read_to_string(public_key)?;
 
         let pub_key = PublicKey::from_openssh(&pub_data)?;
 
-        Ok(SshVerifier { pub_key })
+        Ok(SshPublic { pub_key })
     }
 
     pub fn verify(&self, msg: &[u8], signature: &[u8]) -> Result<()> {

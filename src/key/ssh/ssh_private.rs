@@ -6,19 +6,31 @@ use std::{
 use log::warn;
 use ssh_key::{Cipher, HashAlg, PrivateKey};
 
-use crate::error::{Error, Result};
+use crate::{
+    error::{Error, Result},
+    key::keys::Signer,
+};
 
 use super::ssh_agent::SshAgentClient;
 
 #[derive(Debug)]
-pub struct SshSigner {
+pub struct SshPrivate {
     key_file: PathBuf,
     key: PrivateKey,
     agent: Option<SshAgentClient>,
 }
 
-impl SshSigner {
-    pub fn new<P: AsRef<Path>>(private_key: P) -> Result<SshSigner> {
+impl Signer for SshPrivate {
+    fn sign(&mut self, data: &[u8]) -> Result<Vec<u8>> {
+        match self.key.cipher().is_none() {
+            true => self.sign_with_key(data),
+            false => self.sign_with_agent(data),
+        }
+    }
+}
+
+impl SshPrivate {
+    pub fn new<P: AsRef<Path>>(private_key: P) -> Result<SshPrivate> {
         let pk = private_key.as_ref();
 
         let encoded_key = fs::read_to_string(&pk)?;
@@ -36,18 +48,11 @@ impl SshSigner {
             },
         };
 
-        Ok(SshSigner {
+        Ok(SshPrivate {
             key_file: pk.into(),
             key,
             agent,
         })
-    }
-
-    pub fn sign(&mut self, data: &[u8]) -> Result<Vec<u8>> {
-        match self.key.cipher().is_none() {
-            true => self.sign_with_key(data),
-            false => self.sign_with_agent(data),
-        }
     }
 
     fn sign_with_agent(&mut self, data: &[u8]) -> Result<Vec<u8>> {
@@ -102,7 +107,7 @@ iEDuKa45ETd2d7aQ==
         let temp_dir = tempfile::tempdir().unwrap();
         let key_file = Path::new(&temp_dir.into_path()).join("key");
         fs::write(&key_file, SSH_KEY).unwrap();
-        let mut s = SshSigner::new(key_file).unwrap();
+        let mut s = SshPrivate::new(key_file).unwrap();
         let ret = s.sign("hello".as_bytes());
 
         assert!(ret.is_err());
@@ -110,7 +115,7 @@ iEDuKa45ETd2d7aQ==
         let temp_dir = tempfile::tempdir().unwrap();
         let key_file = Path::new(&temp_dir.into_path()).join("key");
         fs::write(&key_file, SSH_KEY_NO_PASS).unwrap();
-        let mut s = SshSigner::new(&key_file).unwrap();
+        let mut s = SshPrivate::new(&key_file).unwrap();
         let ret = s.sign("hello".as_bytes());
 
         assert!(ret.is_ok());

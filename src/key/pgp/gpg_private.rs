@@ -13,11 +13,11 @@ use which::which;
 
 use crate::{
     error::{Error, Result},
-    key::{self, pgp::pgp_common::log_command_failure},
+    key::{self, keys::Signer, pgp::pgp_common::log_command_failure},
 };
 
 #[derive(Debug)]
-pub struct GgpSigner {
+pub struct GpgPrivate {
     key_id: Option<String>,
 }
 
@@ -83,18 +83,8 @@ fn run_pgp(
     }
 }
 
-impl GgpSigner {
-    pub fn new_with_key(private_key_id: &str) -> GgpSigner {
-        GgpSigner {
-            key_id: Some(private_key_id.to_string()),
-        }
-    }
-
-    pub fn new() -> GgpSigner {
-        GgpSigner { key_id: None }
-    }
-
-    pub fn sign(&mut self, data: &[u8]) -> Result<Vec<u8>> {
+impl Signer for GpgPrivate {
+    fn sign(&mut self, data: &[u8]) -> Result<Vec<u8>> {
         let tmp_dir = Builder::new().prefix("dver_gpg_").tempdir()?;
 
         let in_file = Path::new(tmp_dir.path()).join("input.bin");
@@ -116,5 +106,17 @@ impl GgpSigner {
         info!("signature size: {}", sig_data.len());
 
         Ok(sig_data)
+    }
+}
+
+impl GpgPrivate {
+    pub fn new_with_key(private_key_id: &str) -> GpgPrivate {
+        GpgPrivate {
+            key_id: Some(private_key_id.to_string()),
+        }
+    }
+
+    pub fn new() -> GpgPrivate {
+        GpgPrivate { key_id: None }
     }
 }

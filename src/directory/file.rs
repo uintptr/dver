@@ -1,3 +1,4 @@
+#![allow(unused)]
 use core::fmt;
 use std::path::{Path, PathBuf};
 

@@ -10,7 +10,7 @@ use crate::{
     key::pgp::pgp_common::log_command_failure,
 };
 
-pub struct GpgVerifier {
+pub struct GpgPublic {
     key_id: Option<String>,
 }
 
@@ -47,15 +47,15 @@ fn gpg_verify(gpg_exe: &Path, key_id: &Option<String>, msg: &Path, sig: &Path) -
     }
 }
 
-impl GpgVerifier {
-    pub fn new_with_key(private_key_id: &str) -> GpgVerifier {
-        GpgVerifier {
+impl GpgPublic {
+    pub fn new_with_key(private_key_id: &str) -> GpgPublic {
+        GpgPublic {
             key_id: Some(private_key_id.to_string()),
         }
     }
 
-    pub fn new() -> GpgVerifier {
-        GpgVerifier { key_id: None }
+    pub fn new() -> GpgPublic {
+        GpgPublic { key_id: None }
     }
 
     pub fn verify(&self, msg: &[u8], signature: &[u8]) -> Result<()> {

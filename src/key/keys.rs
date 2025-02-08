@@ -5,18 +5,22 @@ use log::info;
 use crate::error::{Error, Result};
 
 use super::{
-    pgp::{gpg_private::GgpSigner, gpg_public::GpgVerifier},
-    ssh::{ssh_private::SshSigner, ssh_public::SshVerifier},
+    pgp::{gpg_private::GpgPrivate, gpg_public::GpgPublic},
+    ssh::{ssh_private::SshPrivate, ssh_public::SshPublic},
 };
 
+pub trait Signer {
+    fn sign(&mut self, data: &[u8]) -> Result<Vec<u8>>;
+}
+
 pub enum DvSigners {
-    Ssh(SshSigner),
-    Pgp(GgpSigner),
+    Ssh(SshPrivate),
+    Pgp(GpgPrivate),
 }
 
 pub enum DvVerifier {
-    Ssh(SshVerifier),
-    Gpg(GpgVerifier),
+    Ssh(SshPublic),
+    Gpg(GpgPublic),
 }
 
 pub fn load_private_key<P: AsRef<Path>>(path: P) -> Result<DvSigners> {
@@ -25,22 +29,22 @@ pub fn load_private_key<P: AsRef<Path>>(path: P) -> Result<DvSigners> {
 
     if path.ends_with("id_ed25519") {
         info!("loading a ed25519 ssh private key");
-        let key = SshSigner::new(path)?;
+        let key = SshPrivate::new(path)?;
         return Ok(DvSigners::Ssh(key));
     }
 
     if path.ends_with("id_rsa") {
         info!("loading a rsa ssh private key");
-        let key = SshSigner::new(path)?;
+        let key = SshPrivate::new(path)?;
         return Ok(DvSigners::Ssh(key));
     }
 
     if let Some(p) = path_str {
         if let Some(gpg_key_id) = p.strip_prefix("gpg://") {
-            let key = GgpSigner::new_with_key(gpg_key_id);
+            let key = GpgPrivate::new_with_key(gpg_key_id);
             return Ok(DvSigners::Pgp(key));
         } else if p == "gpg" {
-            let key = GgpSigner::new();
+            let key = GpgPrivate::new();
             return Ok(DvSigners::Pgp(key));
         }
     }
@@ -54,22 +58,22 @@ pub fn load_public_key<P: AsRef<Path>>(path: P) -> Result<DvVerifier> {
 
     if path.ends_with("id_ed25519.pub") {
         info!("loading a ed25519 ssh public key");
-        let key = SshVerifier::new(path)?;
+        let key = SshPublic::new(path)?;
         return Ok(DvVerifier::Ssh(key));
     }
 
     if path.ends_with("id_rsa.pub") {
         info!("loading a rsa ssh public key");
-        let key = SshVerifier::new(path)?;
+        let key = SshPublic::new(path)?;
         return Ok(DvVerifier::Ssh(key));
     }
 
     if let Some(p) = path_str {
         if let Some(gpg_key_id) = p.strip_prefix("gpg://") {
-            let key = GpgVerifier::new_with_key(gpg_key_id);
+            let key = GpgPublic::new_with_key(gpg_key_id);
             return Ok(DvVerifier::Gpg(key));
         } else if p == "gpg" {
-            let key = GpgVerifier::new();
+            let key = GpgPublic::new();
             return Ok(DvVerifier::Gpg(key));
         }
     }
