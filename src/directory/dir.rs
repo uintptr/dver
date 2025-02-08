@@ -1,3 +1,4 @@
+#![allow(unused)]
 use std::{
     env,
     fmt::{self},
@@ -13,8 +14,9 @@ use crate::common::{
 use log::info;
 use serde_derive::Serialize;
 use sha2::{Digest, Sha256, Sha512};
+use walkdir::WalkDir;
 
-use crate::error::Error;
+use crate::error::{Error, Result};
 
 use super::file::WalkerFile;
 
@@ -45,6 +47,85 @@ impl fmt::Display for WalkerDirectory {
     }
 }
 
+impl WalkerDirectory {
+    pub fn new<P: AsRef<Path>>(root: P, hash_type: DVHashType) -> Result<WalkerDirectory> {
+        let absolute_root = match root.as_ref().is_absolute() {
+            true => root.as_ref().into(),
+            false => {
+                let cwd = env::current_dir()?;
+                Path::new(&cwd).join(root)
+            }
+        };
+
+        WalkerDirectory::new_with_root(absolute_root, ".", hash_type)
+    }
+
+    fn new_with_root<P: AsRef<Path>, T: AsRef<Path>>(
+        absolute: P,
+        relative: T,
+        hash_type: DVHashType,
+    ) -> Result<WalkerDirectory> {
+        let mut d = WalkerDirectory {
+            directory: relative.as_ref().into(),
+            files: Vec::new(),
+            directories: Vec::new(),
+            hash: vec![],
+        };
+
+        d.parse(absolute, relative, hash_type)?;
+
+        d.hash = match hash_type {
+            DVHashType::Sha256 => d.hash::<Sha256>(),
+            DVHashType::Sha512 => d.hash::<Sha512>(),
+        }?;
+
+        Ok(d)
+    }
+
+    fn parse<P: AsRef<Path>, T: AsRef<Path>>(
+        &mut self,
+        absolute: P,
+        relative: T,
+        hash_type: DVHashType,
+    ) -> Result<()> {
+        let absolute_path = absolute.as_ref().join(relative.as_ref()).canonicalize()?;
+
+        for entry in WalkDir::new(absolute_path).contents_first(false) {
+            let abs_path = match entry {
+                Ok(v) => v,
+                Err(_) => return Err(Error::InvalidRootDirectory),
+            };
+
+            let rel_file = match abs_path.file_name().to_str() {
+                Some(v) => v.to_string(),
+                None => return Err(Error::InvalidRootDirectory),
+            };
+
+            let d = WalkerDirectory::new_with_root(abs_path.into_path(), rel_file, hash_type)?;
+        }
+
+        todo!()
+    }
+
+    fn hash<T: Digest>(&self) -> Result<Vec<u8>> {
+        let mut hash = T::new();
+
+        for file in &self.files {
+            hash.update(&file.hash);
+        }
+
+        for dir in &self.directories {
+            if dir.hash.is_empty() {
+                return Err(Error::EmptyHash);
+            }
+        }
+
+        let digest = hash.finalize();
+
+        Ok(digest.to_vec())
+    }
+}
+/*
 impl WalkerDirectory {
     pub fn new<P: AsRef<Path>>(dir: P, hash_type: DVHashType) -> Result<WalkerDirectory, Error> {
         let dir: PathBuf = match dir.as_ref().is_absolute() {
@@ -157,6 +238,7 @@ impl WalkerDirectory {
         Ok(digest.to_vec())
     }
 }
+*/
 
 #[cfg(test)]
 mod tests {
