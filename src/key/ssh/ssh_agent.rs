@@ -279,7 +279,6 @@ mod tests {
 
     #[test]
     fn test_ssh_sign() {
-
         let home = home_dir().unwrap();
 
         let pkey_file = Path::new(&home).join(".ssh").join("id_ed25519");

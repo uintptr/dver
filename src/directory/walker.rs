@@ -16,10 +16,12 @@ pub struct Walker {
 
 impl Walker {
     pub fn new<P: AsRef<Path>>(directory: P, hash: DVHashType) -> Result<Walker> {
-        let version = CUR_SIG_FORMAT_VER;
         let root = WalkerDirectory::new(directory, hash)?;
 
-        Ok(Walker { version, root })
+        Ok(Walker {
+            version: CUR_SIG_FORMAT_VER,
+            root,
+        })
     }
 
     pub fn encode(&self) -> Result<String> {
