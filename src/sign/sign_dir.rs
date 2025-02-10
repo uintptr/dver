@@ -150,6 +150,7 @@ pub fn sign_directory<P: AsRef<Path>>(
     hash_type: DVHashType,
     output_sig_file: Option<P>,
     signature_type: DVSignType,
+    exclude_list: Vec<String>,
 ) -> Result<()> {
     let directory = canonicalize(directory)?;
 
@@ -164,6 +165,7 @@ pub fn sign_directory<P: AsRef<Path>>(
     printkv("Hash Type", hash_type);
     printkv("Signature File", out_file.display());
     printkv("Signature Type", &signature_type);
+    printkv("Exclude", format!("{:?}", exclude_list));
 
     if out_file.exists() {
         warn!("{:?} already exists", out_file);

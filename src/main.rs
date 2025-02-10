@@ -28,6 +28,9 @@ struct SignOpt {
     /// Include context in the signature to help troubleshooting
     #[structopt(long, default_value="complete", possible_values = &["short", "complete"])]
     signature_type: DVSignType,
+    /// Files directories to ignore
+    #[structopt(long = "exclude", short = "e")]
+    exclude_list: Vec<String>,
 }
 
 #[derive(Debug, StructOpt)]
@@ -77,6 +80,7 @@ fn main() -> Result<()> {
             opt.hash_type,
             opt.signature_file,
             opt.signature_type,
+            opt.exclude_list,
         ),
         DVCommand::Verify(opt) => verify_directory(
             opt.directory,
