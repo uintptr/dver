@@ -1,6 +1,6 @@
-use std::{fmt::Display, fs, path::Path};
+use std::{fmt::Display, fs, os::linux::fs::MetadataExt, path::Path};
 
-pub fn format_size(bytes: u64) -> String {
+pub fn fmt_size(bytes: u64) -> String {
     const KB: f64 = 1024.0;
     const MB: f64 = KB * 1024.0;
     const GB: f64 = MB * 1024.0;
@@ -20,14 +20,16 @@ pub fn format_size(bytes: u64) -> String {
 }
 
 pub fn fmt_len(size: usize) -> String {
-    format_size(size as u64)
+    fmt_size(size as u64)
 }
 
-pub fn file_size_to_str<P: AsRef<Path>>(file_path: P) -> crate::error::Result<String> {
-    let stat = fs::metadata(file_path)?;
+pub fn fmt_file_size<P: AsRef<Path>>(file_path: P) -> String {
+    let file_size = match fs::metadata(file_path) {
+        Ok(stat) => stat.st_size(),
+        Err(_) => 0,
+    };
 
-    //Ok(format_size(stat.size()))
-    Ok(format_size(stat.len()))
+    fmt_size(file_size)
 }
 
 pub fn printkv<D: Display>(k: &str, v: D) {

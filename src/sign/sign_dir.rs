@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     common::{
-        fmt::{file_size_to_str, printkv},
+        fmt::{fmt_file_size, printkv},
         hash::{hash_string, DVHashType},
         r#const::DEFAULT_SIGN_FILE_NAME,
     },
@@ -81,10 +81,11 @@ impl DVSignature {
 
         let pem = pem::parse(b64_data)?;
 
+        //
         // this doesn't feel right, but would it be better to let
         // serde_json::from_slice() fail since we're not loading json data
         //
-        // we'll revisit
+        // will revisit
         //
         let s = match pem.contents()[0] {
             b'{' => {
@@ -179,8 +180,7 @@ pub fn sign_directory<P: AsRef<Path>>(
     s.sign(private_key)?;
     s.to_file(out_file, signature_type)?;
 
-    let file_size = file_size_to_str(out_file)?;
-    printkv("File Size", file_size);
+    printkv("File Size", fmt_file_size(out_file));
 
     Ok(())
 }
