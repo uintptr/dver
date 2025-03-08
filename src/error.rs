@@ -1,4 +1,10 @@
-use std::{path::StripPrefixError, str::Utf8Error, string::FromUtf8Error, time::SystemTimeError};
+use std::{
+    path::StripPrefixError,
+    process::{Command, Output},
+    str::Utf8Error,
+    string::FromUtf8Error,
+    time::SystemTimeError,
+};
 
 use derive_more::From;
 use pem::PemError;
@@ -46,7 +52,10 @@ pub enum Error {
     //
     #[from]
     NotInPath(which::Error),
-    ExecFailure(String),
+    ExecFailure {
+        command: Command,
+        output: Output,
+    },
 
     //
     // Key

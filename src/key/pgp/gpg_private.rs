@@ -28,38 +28,37 @@ fn run_pgp(
     in_file: &Path,
     out_file: &Path,
 ) -> Result<()> {
-    let mut args = vec!["--sign"];
+    let mut command = Command::new(gpg_exe);
 
     if let Some(key) = &key_id {
-        args.push("--default-key");
-        args.push(key);
+        command.arg("--default-key");
+        command.arg(key);
     }
 
     if out_file.exists() {
         fs::remove_file(out_file)?;
     }
 
-    args.push("--detach-sign");
-    args.push("--batch");
-    args.push("--pinentry-mode");
-    args.push("loopback");
-    args.push("--no-tty");
+    command
+        .arg("--detach-sign")
+        .arg("--batch")
+        .arg("--pinentry-mode")
+        .arg("loopback")
+        .arg("--no-tty");
 
     if ask_pass {
-        args.push("--passphrase-fd");
-        args.push("0");
+        command.arg("--passphrase-fd").arg("0");
     }
-    args.push("--output");
-    args.push(out_file.to_str().unwrap_or(""));
-    args.push(in_file.to_str().unwrap_or(""));
+
+    command
+        .arg("--output")
+        .arg(out_file.to_str().unwrap_or(""))
+        .arg(in_file.to_str().unwrap_or(""));
 
     info!("-----------------------------------");
-    info!("{} {:?}", gpg_exe.display(), args);
+    info!("command: {:?}", command);
 
-    let mut child = Command::new(gpg_exe)
-        .args(args)
-        .stdin(Stdio::piped())
-        .spawn()?;
+    let mut child = command.stdin(Stdio::piped()).spawn()?;
 
     if ask_pass {
         if let Some(mut stdin) = child.stdin.take() {
@@ -78,7 +77,7 @@ fn run_pgp(
         _ => {
             log_command_failure(&output);
             let msg = format!("{:?} returned {exit_code}", gpg_exe.display());
-            Err(Error::ExecFailure(msg))
+            Err(Error::ExecFailure { command, output })
         }
     }
 }

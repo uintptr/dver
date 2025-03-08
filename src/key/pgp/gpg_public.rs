@@ -15,25 +15,25 @@ pub struct GpgPublic {
 }
 
 fn gpg_verify(gpg_exe: &Path, key_id: &Option<String>, msg: &Path, sig: &Path) -> Result<()> {
-    let mut args = vec![];
+    let mut command = Command::new(gpg_exe);
 
     if let Some(key) = &key_id {
-        args.push("--default-key");
-        args.push(key);
+        command.arg("--default-key").arg(key);
     }
 
-    args.push("--batch");
-    args.push("--pinentry-mode");
-    args.push("loopback");
-    args.push("--no-tty");
-    args.push("--verify");
-    args.push(sig.to_str().unwrap_or(""));
-    args.push(msg.to_str().unwrap_or(""));
+    command
+        .arg("--batch")
+        .arg("--pinentry-mode")
+        .arg("loopback")
+        .arg("--no-tty")
+        .arg("--verify")
+        .arg(sig.to_str().unwrap_or(""))
+        .arg(msg.to_str().unwrap_or(""));
 
     info!("-----------------------------------");
-    info!("{} {:?}", gpg_exe.display(), args);
+    info!("command: {:?}", command);
 
-    let output = Command::new(gpg_exe).args(args).output()?;
+    let output = command.output()?;
 
     let exit_code = output.status.code().unwrap_or(1);
 
@@ -41,8 +41,7 @@ fn gpg_verify(gpg_exe: &Path, key_id: &Option<String>, msg: &Path, sig: &Path) -
         0 => Ok(()),
         _ => {
             log_command_failure(&output);
-            let msg = format!("{:?} returned {exit_code}", gpg_exe.display());
-            Err(Error::ExecFailure(msg))
+            Err(Error::ExecFailure { command, output })
         }
     }
 }
